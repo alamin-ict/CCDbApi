@@ -11,6 +11,7 @@ namespace CCDbApi.Service
         Task<Order> DeleteOrderAsync(Order tags);
         Task<Order> GetOrderAsync(string id);
         Task<List<OrderDto>> GetAllOrdersAsync();
+        Task<List<OrderDto>> GetAllOrdersByUserAsync(string userId);
         Task<List<OrderDetail>> GetAllOrderDetailsAsync(string orderId);
 
 
@@ -104,7 +105,46 @@ namespace CCDbApi.Service
 
                     OrderDetailDtos = details.Select(d => new OrderDetailDto
                     {
-                        Id = d.Id.ToString()    ,
+                        Id = d.Id.ToString(),
+                        PublicationId = d.PublicationId,
+                        Quantity = d.Quantity,
+                        Price = d.Price
+                    }).ToList()
+                });
+            }
+
+            return orderDtos;
+        }
+        public async Task<List<OrderDto>> GetAllOrdersByUserAsync(string userId)
+        {
+            var orders = await _orderRepo.FindAsync(a => a.UserId == userId);
+
+            if (!orders.Any() || orders == null)
+                return new List<OrderDto>();
+
+            var orderDtos = new List<OrderDto>();
+
+            foreach (var order in orders)
+            {
+                var details = await _orderDetailRepo.FindAsync(x => x.OrderId == order.Id.ToString());
+
+                orderDtos.Add(new OrderDto
+                {
+                    Id = order.Id.ToString(),
+                    OrderNo = order.OrderNo,
+                    UserId = order.UserId,
+                    CustomerId = order.CustomerId,
+                    Title = order.Title,
+                    Description = order.Description,
+                    PropertyAddress = order.PropertyAddress,
+                    OrderDate = order.OrderDate,
+                    DueDate = order.DueDate,
+                    TotalAmount = order.TotalAmount,
+                    Status = order.Status,
+
+                    OrderDetailDtos = details.Select(d => new OrderDetailDto
+                    {
+                        Id = d.Id.ToString(),
                         PublicationId = d.PublicationId,
                         Quantity = d.Quantity,
                         Price = d.Price
@@ -115,7 +155,7 @@ namespace CCDbApi.Service
             return orderDtos;
         }
 
-      
+
 
         public async Task<List<OrderDetail>> GetAllOrderDetailsAsync(string orderId)
         {
@@ -145,7 +185,7 @@ namespace CCDbApi.Service
 
                 return orderDetails;
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 return null;
             }

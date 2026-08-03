@@ -47,6 +47,39 @@ namespace CCDbApi.Controller
             }
 
         }
+
+        // GET: api/Tags
+        [HttpGet("getAllOrdersByUser")]
+        public async Task<ActionResult<List<OrderDto>>> getAllOrderByUser()
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new
+                {
+                    message = "Invalid Order data.",
+                    errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                });
+            }
+            try
+            {
+                // Retrieve user from context
+                var user = HttpContext.User;
+                // Optionally retrieve user ID if needed
+                var userId = user.FindFirst("Id")?.Value;
+                var email = user.FindFirst("Email")?.Value;
+                var orders = new List<OrderDto>();
+                orders = await _orderService.GetAllOrdersByUserAsync(userId);
+                return Ok(orders);
+            }
+            catch (Exception ex)
+            {
+                // Log ex here
+                var problem = Problem(detail: "An unexpected error occurred.", title: "Server Error");
+                return StatusCode(StatusCodes.Status500InternalServerError, problem);
+            }
+
+        }
+
         // GET: api/order/{id}
         [HttpGet("getOrder/{id}")]
         public async Task<ActionResult<OrderDto>> getOrder(string id)
