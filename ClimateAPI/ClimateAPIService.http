@@ -1,0 +1,5 @@
+@YogaMicroservice_HostAddress = MYSQL5050.site4now.net:3306
+GET {{YogaMicroservice_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
