@@ -7,7 +7,7 @@ namespace CCDbApi.Model
         public string Name { get; set; }
         public string Slug { get; set; }
         public string? Description { get; set; }
-        public string? TagsId { get; set; }
+        public string? ParentId { get; set; }
         public string UserId {  get; set; }
 
     }

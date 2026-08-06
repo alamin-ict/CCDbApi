@@ -1,8 +1,10 @@
-﻿namespace CCDbApi.ViewModel
+﻿using CCDbApi.Model;
+
+namespace CCDbApi.ViewModel
 {
     public class RoleViewModel
     {
         public string Name { get; set; }
-        public string? Type { get; set; }
+        public RoleType Type { get; set; }
     }
 }

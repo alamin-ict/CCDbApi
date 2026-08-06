@@ -25,4 +25,6 @@ namespace CCDbApi.Model
             CreatedDate = DateTime.Now;
         }
     }
+
+
 }

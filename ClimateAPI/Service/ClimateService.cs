@@ -25,6 +25,8 @@ namespace CCDbApi.Service
         Task<List<TrainingInfo>> GetAllTrainingInfoAsync();
         Task<Role> GetUserRoleByIdAsync(string id); 
         Task<Role> InsertIntoDbRoleAsync(Role role);
+        Task<List<Role>> GetDbRoleAsync();
+
         Task<Contact> GetContactByIdAsync(string id);
         Task<Contact> InsertIntoDbContactAsync(Contact contact);  
         Task<Partner> InsertIntoDbPartnerAsync(Partner partner);
@@ -101,6 +103,15 @@ namespace CCDbApi.Service
             var partners=await _partnerReository.FindAsync(a=>a.UserId==userId);    
             return partners.ToList();   
         }
+        public async Task<List<Role>> GetDbRoleAsync()
+        {
+            var roles = await _roleRepository.GetAllAsync();
+            if(roles == null)
+            {
+                return new List<Role>();
+            }   
+            return roles.ToList();
+        }
         public async Task<List<Partner>> GetAllPartnersOrClients()
         {
             var partners = await _partnerReository.GetAllAsync();
@@ -128,7 +139,7 @@ namespace CCDbApi.Service
                     u.UserName == userName &&
                     u.Password == password &&
                     u.Email == email &&
-                    u.UserRole == userRole);
+                    u.RoleId == userRole);
             if (user.Any())
             {
 
@@ -138,9 +149,9 @@ namespace CCDbApi.Service
             return null;
         }
 
-        public async  Task<Role> GetUserRoleByIdAsync(string id)
+        public async  Task<Role> GetUserRoleByIdAsync(string name)
         {
-            var role=await _roleRepository.FindAsync(a=>a.UserId==id);
+            var role=await _roleRepository.FindAsync(a=>a.Name==name);
             return role.FirstOrDefault();
         }
        public async Task<Role> InsertIntoDbRoleAsync(Role role)

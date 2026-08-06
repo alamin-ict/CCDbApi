@@ -369,7 +369,7 @@ namespace CCDbApi.Controller
 
         // POST: api/Tags
         [HttpPost("addOrUpdateCategory")]
-        public async Task<ActionResult<Tags>> addTags(CategoryDto dto)
+        public async Task<ActionResult<Category>> addTags(CategoryDto dto)
         {
             if (!ModelState.IsValid)
             {
@@ -397,7 +397,7 @@ namespace CCDbApi.Controller
                         Slug = dto.Slug,
                         UserId = userId,
                         Description = dto.Description,
-                        TagsId = dto.TagsId,
+                        ParentId = dto.ParentId,
 
                     };
 
@@ -418,7 +418,7 @@ namespace CCDbApi.Controller
                     tag.Slug = dto.Slug;
                     tag.UpdatedBy = userId;
                     tag.UpdatedDate = DateTime.Now;
-                    tag.TagsId = dto.TagsId;
+                    tag.ParentId = dto.ParentId;
                     tag.Description = dto.Description;
                     tag = await _ccdvService.UpdateCategoryAsync(tag);
                     if (tag == null)

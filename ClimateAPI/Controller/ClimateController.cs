@@ -37,8 +37,17 @@ namespace CCDbApi.Controller
                     errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
                 });
             }
-
-            var existUser = await _climateService.GetUserByAsync(userData.UserName, userData.Password, userData.Email, userData.UserRole);
+            var roles = await _climateService.GetDbRoleAsync();
+            if (!roles.Any(r => r.Type == userData.Role))
+            {
+                return BadRequest(new
+                {
+                    message = "Invalid role ID. The specified role does not exist.",
+                    errors = new[] { "The provided role ID is not valid." }
+                });
+            }
+            var role = roles.FirstOrDefault(r => r.Type == userData.Role);
+            var existUser = await _climateService.GetUserByAsync(userData.UserName, userData.Password, userData.Email, role.Id.ToString());
             if (existUser != null)
             {
                 return Ok(new
@@ -49,6 +58,7 @@ namespace CCDbApi.Controller
                 });
             }
             var id = Guid.NewGuid();
+           
             var userdata = new User()
             {
                 Id = id,
@@ -56,7 +66,7 @@ namespace CCDbApi.Controller
                 UserName = userData.UserName,
                 Email = userData.Email,
                 Password = userData.Password,
-                UserRole = userData.UserRole,
+                RoleId = role.Id.ToString(),
                 CreatedBy = id.ToString(),
                 UpdatedBy = id.ToString()
 
@@ -122,11 +132,11 @@ namespace CCDbApi.Controller
             {
                 Id = Guid.NewGuid(),
                 Email = sub.Email,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now,
+                CreatedDate = DateTime.Now,
+                UpdatedDate = DateTime.Now,
                 Source = "https://portal.ccdbclimatecentre.com/",
                 Category = "CCDB_Climate",
-                IsAtive = true,
+                IsActive = true,
                 IsDeleted = false
 
             };
@@ -176,7 +186,7 @@ namespace CCDbApi.Controller
             // Optionally retrieve user ID if needed
             var userId = user.FindFirst("Id")?.Value;
             var email = user.FindFirst("Email")?.Value;
-            var existRole = await _climateService.GetUserRoleByIdAsync(userId);
+            var existRole = await _climateService.GetUserRoleByIdAsync(role.Name);
             if (existRole != null)
             {
                 return Ok(new
@@ -194,13 +204,26 @@ namespace CCDbApi.Controller
                 Type = role.Type,
                 UpdatedBy = userId,
                 CreatedBy = userId,
-                UserId = userId
             };
             var addedRole = await _climateService.InsertIntoDbRoleAsync(userRole);
             return Ok(new
             {
                 message = "Inserted this user role into DB successfully",
                 role = addedRole
+
+            });
+        }
+
+        [HttpPost("getAllRoles")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetRoleIntoDB()
+        {
+
+            var roles = await _climateService.GetDbRoleAsync();
+            return Ok(new
+            {
+                message = "Get all roles from DB successfully",
+                roles = roles
 
             });
         }
@@ -694,7 +717,7 @@ namespace CCDbApi.Controller
             }
 
             // Validate file extension
-            var allowedExtensions = new[] { ".png", ".jpg", ".jpeg", ".ico", ".gif",".pdf",".docs",".txt" };
+            var allowedExtensions = new[] { ".png", ".jpg", ".jpeg", ".ico", ".gif", ".pdf", ".docs", ".txt" };
             var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
             if (!allowedExtensions.Contains(fileExtension))
             {
@@ -1021,8 +1044,8 @@ namespace CCDbApi.Controller
 
             });
         }
-       
-    
-    
+
+
+
     }
 }

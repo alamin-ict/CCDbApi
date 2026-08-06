@@ -331,7 +331,7 @@ namespace CCDbApi.Service
                         Name = category.Name,
                         Description = category.Description,
                         Slug = category.Slug,
-                        TagsId = category.TagsId,
+                        ParentId = category.ParentId,
                     });
                 }
                 return data;
@@ -400,7 +400,7 @@ namespace CCDbApi.Service
                         Name = category.Name,
                         Description = category.Description,
                         Slug = category.Slug,
-                        TagsId = category.TagsId,
+                        ParentId = category.ParentId,
                     });
                 }
                 return data;
