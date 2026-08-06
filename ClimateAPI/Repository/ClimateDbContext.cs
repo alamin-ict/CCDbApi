@@ -11,18 +11,30 @@ namespace IYogaBackendMicroservice.Repository
         {
             _configuration = configuration;
         }
-        public DbSet<TraineeInfo>TraineeInfos { get; set; } 
-      
+        public DbSet<TraineeInfo> TraineeInfos { get; set; }
+
         public DbSet<TrainingInfo> TrainingInfos { get; set; }
-        public DbSet<Subscribe> Subscribe {  get; set; }    
+        public DbSet<Subscribe> Subscribe { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<Role> Roles { get; set; }
         public DbSet<Category> Categories { get; set; }
-        public DbSet<Tags>Tags { get; set; }
-        public DbSet<Publication> Publications { get; set; }    
+        public DbSet<Tags> Tags { get; set; }
+        public DbSet<Publication> Publications { get; set; }
         public DbSet<PagePost> PagePosts { get; set; }
         public DbSet<PostCategoryMapping> PostCategoriesMappings { get; set; }
         public DbSet<PublicationCategoryMapping> PublicationMappings { get; set; }
+        public DbSet<PostTagsMapping> PostTagsMappings { get; set; }
+        public DbSet<Appearance> Appearance { get; set; }
+        public DbSet<GeneralSettings> GeneralSettings { get; set; }   
+        public DbSet<SocialContact> SocialContacts { get; set; }
+        public DbSet<Comment> Comments { get; set; }
+        public DbSet<Media> Media { get; set; }
+        public DbSet<Slider> Slider { get; set; }
+        public DbSet<Order> Orders { get; set; }
+        public DbSet<OrderDetail> OrderDetails { get; set; }
+        public DbSet<OrderAttachment> OrderAttachments { get; set; }
+        public DbSet<Payment> Payments { get; set; }
+        public DbSet<Invoice> Invoices { get; set; }
         public DbSet<Partner> Partners { get; set; }
         public DbSet<Contact> Contacts { get; set; }
         public DbSet<ImageConfiguration> ImageConfigurations { get; set; }
