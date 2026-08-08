@@ -21,6 +21,274 @@ namespace CCDbApi.Controller
             _ccdvService = ccdvService;
             _emailService = emailService;
         }
+        [HttpPost("uploadMedia")]
+        public async Task<IActionResult> UploadMediaAsync(
+       IFormFile? file,
+       string? mediaUrl,
+       string? title,
+       string? description)
+        {
+            // Retrieve user information
+            var user = HttpContext.User;
+
+            var userId = user.FindFirst("Id")?.Value;
+            var email = user.FindFirst("Email")?.Value;
+
+            // Must provide either file or mediaUrl
+            if (file == null && string.IsNullOrWhiteSpace(mediaUrl))
+            {
+                return BadRequest(new
+                {
+                    Message = "Please provide either a file or mediaUrl."
+                });
+            }
+
+            string? photoUrl = mediaUrl;
+            string? downloadUrl = null;
+            string? fileName = null;
+            string? originalFileName = null;
+            string? fileExtension = null;
+            string? contentType = null;
+            string? fileSize = null;
+
+            // ============================================================
+            // FILE UPLOAD
+            // ============================================================
+            if (file != null)
+            {
+                if (file.Length == 0)
+                {
+                    return BadRequest(new
+                    {
+                        Message = "Uploaded file is empty."
+                    });
+                }
+
+                // Allowed extensions
+                var allowedExtensions = new[]
+                {
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".ico",
+            ".gif",
+            ".pdf",
+            ".doc",
+            ".docx",
+            ".txt"
+        };
+
+                fileExtension = Path
+                    .GetExtension(file.FileName)
+                    .ToLowerInvariant();
+
+                if (string.IsNullOrWhiteSpace(fileExtension) ||
+                    !allowedExtensions.Contains(fileExtension))
+                {
+                    return BadRequest(new
+                    {
+                        Message =
+                            "Invalid file type. Only .png, .jpg, .jpeg, .ico, .gif, .pdf, .doc, .docx and .txt files are allowed."
+                    });
+                }
+
+                // Original file name
+                originalFileName = Path.GetFileName(file.FileName);
+
+                // Upload directory
+                string uploadPath = Path.Combine(
+                    Directory.GetCurrentDirectory(),
+                    "uploads"
+                );
+
+                if (!Directory.Exists(uploadPath))
+                {
+                    Directory.CreateDirectory(uploadPath);
+                }
+
+                // Generate unique filename
+                fileName = $"{Guid.NewGuid()}{fileExtension}";
+
+                string filePath = Path.Combine(
+                    uploadPath,
+                    fileName
+                );
+
+                // Save file
+                await using (var stream = new FileStream(
+                    filePath,
+                    FileMode.Create,
+                    FileAccess.Write,
+                    FileShare.None))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                // File information
+                contentType = file.ContentType;
+                fileSize = file.Length.ToString();
+
+                // File URL
+                photoUrl =
+                    $"{Request.Scheme}://{Request.Host}/uploads/{fileName}";
+
+                // Download URL
+                downloadUrl =
+                    $"{Request.Scheme}://{Request.Host}/api/Common/download/{fileName}";
+            }
+
+            // ============================================================
+            // MEDIA URL
+            // ============================================================
+            else if (!string.IsNullOrWhiteSpace(mediaUrl))
+            {
+                photoUrl = mediaUrl;
+
+                // Parse public URL
+                if (Uri.TryCreate(mediaUrl, UriKind.Absolute, out var uri))
+                {
+                    // Get filename from URL path, ignoring query string
+                    fileName = Path.GetFileName(uri.LocalPath);
+
+                    // Get extension
+                    fileExtension = Path.GetExtension(uri.LocalPath).ToLowerInvariant();
+
+                    // If filename is empty, generate one
+                    if (string.IsNullOrWhiteSpace(fileName))
+                    {
+                        fileName = $"{Guid.NewGuid()}{fileExtension}";
+                    }
+
+                    // Original filename for public URL
+                    originalFileName = fileName;
+
+                    // Detect content type from extension
+                    contentType = fileExtension switch
+                    {
+                        ".jpg" or ".jpeg" => "image/jpeg",
+                        ".png" => "image/png",
+                        ".gif" => "image/gif",
+                        ".ico" => "image/x-icon",
+                        ".pdf" => "application/pdf",
+                        ".doc" => "application/msword",
+                        ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        ".txt" => "text/plain",
+                        _ => "application/octet-stream"
+                    };
+
+                    // Public URL does not provide local file size
+                    fileSize = null;
+                }
+                else
+                {
+                    return BadRequest(new
+                    {
+                        Message = "Invalid media URL."
+                    });
+                }
+            }
+            // ============================================================
+            // SAVE MEDIA
+            // ============================================================
+            var media = new Media
+            {
+                CreatedBy = userId,
+
+                MediaUrl = photoUrl!,
+
+                Title = title,
+                Description = description,
+
+                Type = contentType,
+                Size = fileSize,
+
+                Extension = fileExtension ?? string.Empty,
+                FileName = fileName ?? string.Empty,
+
+                UserId = userId!,
+
+                CreatedDate = DateTime.Now
+            };
+
+            await _ccdvService.AddMediaAsync(media);
+
+            // ============================================================
+            // RESPONSE
+            // ============================================================
+            return Ok(new
+            {
+                Message = "Media uploaded successfully.",
+
+                FileName = fileName,
+
+                OriginalFileName = originalFileName,
+
+                FileSize = file?.Length,
+
+                Extension = fileExtension,
+
+                Type = contentType,
+
+                Size = fileSize,
+
+                Title = title,
+
+                Description = description,
+
+                PhotoUrl = photoUrl,
+
+                DownloadUrl = downloadUrl,
+
+                MediaId = media.Id
+            });
+        }
+        [HttpDelete("deleteMedia")]
+        public async Task<IActionResult> DeleteMediaAsync(string id)
+        {
+            // Retrieve user from context
+            var user = HttpContext.User;
+            // Optionally retrieve user ID if needed
+            var userId = user.FindFirst("Id")?.Value;
+            var email = user.FindFirst("Email")?.Value;
+
+            var media = await _ccdvService.GetMediaAsync(id);
+            if (media == null)
+            {
+                return NotFound("No such photo found");
+            }
+            media = await _ccdvService.DeleteMediaAsync(media);
+            if (media == null)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to delete media/photo");
+            }
+            return Ok(new
+            {
+                Message = "File deleted successfully.",
+                Media = media
+            });
+        }
+        [HttpGet("getAllMedia")]
+        public async Task<IActionResult> GetAllMediaAsync()
+        {
+            // Retrieve user from context
+            var user = HttpContext.User;
+            // Optionally retrieve user ID if needed
+            var userId = user.FindFirst("Id")?.Value;
+            var email = user.FindFirst("Email")?.Value;
+
+            var medias = await _ccdvService.GetAllMediaAsync();
+            if (medias == null)
+            {
+                return NotFound("No such photo found");
+            }
+
+            return Ok(new
+            {
+                Message = "Data retrived successfully.",
+                Data = medias
+            });
+        }
+
         [HttpPost("uploadPhoto")]
         [AllowAnonymous]
         public async Task<IActionResult> UploadProfilePhotoAsync(IFormFile file)
@@ -260,8 +528,8 @@ namespace CCDbApi.Controller
             }
         }
 
-        // PUT: api/Tags/{id}
-        [HttpPut("deleteTags/{id}")]
+        // HttpDelete: api/Tags/{id}
+        [HttpDelete("deleteTags/{id}")]
         public async Task<IActionResult> deleteTags(string id)
         {
             if (!ModelState.IsValid)
@@ -437,7 +705,7 @@ namespace CCDbApi.Controller
         }
 
         // PUT: api/Tags/{id}
-        [HttpPut("deleteCategory/{id}")]
+        [HttpDelete("deleteCategory/{id}")]
         public async Task<IActionResult> deleteCategory(string id)
         {
             if (!ModelState.IsValid)
@@ -678,7 +946,7 @@ namespace CCDbApi.Controller
         }
 
         // PUT: api/Publication/{id}
-        [HttpPut("deletePublication/{id}")]
+        [HttpDelete("deletePublication/{id}")]
         public async Task<IActionResult> deletePublication(string id)
         {
             if (!ModelState.IsValid)
@@ -722,6 +990,190 @@ namespace CCDbApi.Controller
         }
 
 
+        // GET: api/Comments
+        [HttpGet("getAllComments")]
+        public async Task<ActionResult<IEnumerable<Comment>>> getAllComments()
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new
+                {
+                    message = "Invalid Comment data.",
+                    errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                });
+            }
+            try
+            {
+                // Retrieve user from context
+                var user = HttpContext.User;
+                // Optionally retrieve user ID if needed
+                var userId = user.FindFirst("Id")?.Value;
+                var email = user.FindFirst("Email")?.Value;
+                var tags = new List<Comment>();
+                tags = await _ccdvService.GetAllCommentsAsync();
+                return Ok(tags);
+            }
+            catch (Exception ex)
+            {
+                // Log ex here
+                var problem = Problem(detail: "An unexpected error occurred.", title: "Server Error");
+                return StatusCode(StatusCodes.Status500InternalServerError, problem);
+            }
+
+        }
+        // GET: api/Comment/{id}
+        [HttpGet("getComment/{id}")]
+        public async Task<ActionResult<Comment>> getComment(string id)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new
+                {
+                    message = "Invalid Comment data.",
+                    errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                });
+            }
+            try
+            {
+                // Retrieve user from context
+                var user = HttpContext.User;
+                // Optionally retrieve user ID if needed
+                var userId = user.FindFirst("Id")?.Value;
+                var email = user.FindFirst("Email")?.Value;
+                var data = new Comment();
+                data = await _ccdvService.GetCommentAsync(id);
+
+
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                // Log ex here
+                var problem = Problem(detail: "An unexpected error occurred.", title: "Server Error");
+                return StatusCode(StatusCodes.Status500InternalServerError, problem);
+            }
+        }
+
+        // POST: api/Comment
+        [HttpPost("addOrUpdateComment")]
+        public async Task<ActionResult<Comment>> addComment(CreateCommentDto dto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new
+                {
+                    message = "Invalid role data.",
+                    errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                });
+            }
+            try
+            {
+                // Retrieve user from context
+                var user = HttpContext.User;
+                // Optionally retrieve user ID if needed
+                var userId = user.FindFirst("Id")?.Value;
+                var email = user.FindFirst("Email")?.Value;
+                var tag = new Comment();
+                if (dto.Id == null)
+                {
+                    tag = new Comment()
+                    {
+                        CreatedBy = userId,
+                        CreatedDate = DateTime.Now,
+
+                        Email = dto.Email,
+                        Name = dto.Name,
+                        IsActive = true,
+                        Status = dto.Status ?? CommentStatus.Pending,
+
+                        UserId = userId,
+                        Description = dto.Description,
+
+                    };
+
+                    tag = await _ccdvService.AddCommentAsync(tag);
+                    if (tag == null)
+                    {
+                        return BadRequest("Failed to add Comment data");
+                    }
+                }
+                else
+                {
+                    tag = await _ccdvService.GetCommentAsync(dto.Id);
+                    if (tag == null)
+                    {
+                        return BadRequest("No such Comment found with this id");
+                    }
+                    tag.UpdatedBy = userId;
+                    tag.UpdatedDate = DateTime.Now;
+                    tag.Name = dto.Name;
+                    tag.Email = dto.Email;
+                    tag.Status = dto.Status ?? tag.Status;
+                    tag.Description = dto.Description;
+                    tag = await _ccdvService.UpdateCommentAsync(tag);
+                    if (tag == null)
+                    {
+                        return BadRequest("Failed to update Comment data");
+                    }
+                }
+
+                return Ok(tag);
+            }
+            catch (Exception ex)
+            {
+                // Log ex here
+                var problem = Problem(detail: "An unexpected error occurred.", title: "Server Error");
+                return StatusCode(StatusCodes.Status500InternalServerError, problem);
+            }
+        }
+
+        // PUT: api/Publication/{id}
+        [HttpDelete("deleteComment/{id}")]
+        public async Task<IActionResult> deleteComment(string id)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new
+                {
+                    message = "Invalid Comment data.",
+                    errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                });
+            }
+            try
+            {
+                // Retrieve user from context
+                var user = HttpContext.User;
+                // Optionally retrieve user ID if needed
+                var userId = user.FindFirst("Id")?.Value;
+                var email = user.FindFirst("Email")?.Value;
+                var tag = new Comment();
+                tag = await _ccdvService.GetCommentAsync(id);
+                if (tag != null)
+                {
+                    tag = await _ccdvService.DeleteCommentAsync(tag);
+                    if (tag != null)
+                    {
+                        return Ok("Successfully deleted");
+                    }
+                    return BadRequest("Failed to delete record");
+                }
+                else
+                {
+                    return BadRequest("No such data found");
+                }
+                return Ok(tag);
+            }
+            catch (Exception ex)
+            {
+                // Log ex here
+                var problem = Problem(detail: "An unexpected error occurred.", title: "Server Error");
+                return StatusCode(StatusCodes.Status500InternalServerError, problem);
+            }
+        }
+
+
+
+        //comment
         // GET: api/PagePosts
         [HttpGet("getAllPagePosts")]
         public async Task<ActionResult<IEnumerable<Tags>>> getAllPagePosts()
@@ -896,7 +1348,7 @@ namespace CCDbApi.Controller
         }
 
         // PUT: api/Publication/{id}
-        [HttpPut("deletePagePost/{id}")]
+        [HttpDelete("deletePagePost/{id}")]
         public async Task<IActionResult> deletePagePost(string id)
         {
             if (!ModelState.IsValid)

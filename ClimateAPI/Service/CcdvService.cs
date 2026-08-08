@@ -6,6 +6,13 @@ namespace CCDbApi.Service
 {
     public interface ICcdvService
     {
+
+        Task<Media> AddMediaAsync(Media tags);
+        Task<Media> UpdateMediaAsync(Media tags);
+        Task<Media> DeleteMediaAsync(Media tags);
+        Task<Media> GetMediaAsync(string id);
+        Task<List<Media>> GetAllMediaAsync();
+
         // Tags
         Task<Tags> AddTagsAsync(Tags tags);
         Task<Tags> UpdateTagsAsync(Tags tags);
@@ -39,23 +46,34 @@ namespace CCDbApi.Service
             List<string>? TagIds);
         Task<List<CategoryDto>> GetAllCategoriesByPostIdAsync(string postId);
         Task<List<TagsDto>> GetAllTagsByPostIdAsync(string postId);
+        //comment
+        Task<Comment> AddCommentAsync(Comment pagePost);
+        Task<Comment> UpdateCommentAsync(Comment pagePost);
+        Task<Comment> DeleteCommentAsync(Comment pagePost);
+        Task<Comment> GetCommentAsync(string id);
+        Task<List<Comment>> GetAllCommentsAsync();
 
     }
     public class CcdvService : ICcdvService
     {
         private readonly ITagsRepository _tagsRepo;
+        private readonly IMediaRepository _mediaRepo;
         private readonly ICategoryRepository _categoryRepo;
         private readonly IPublicationRepository _publicationRepo;
         private readonly IPagePostRepository _pagePostRepo;
         private readonly IPostCategoryMappingRepository _postMappingRepo;
         private readonly IPostTagsMappingRepository _postTagsMappingRepo;
         private readonly IPublicationCategoryMappingRepository _publicationCategoryMappingRepo;
-        public CcdvService(ITagsRepository tagsRepo, IPostCategoryMappingRepository pageTagsMappingRepo,
-            IPostTagsMappingRepository tagsMappingRepository,
+        private readonly ICommentRepository _commentRepo;
+        public CcdvService(ICommentRepository commentRepository,
+            ITagsRepository tagsRepo, IPostCategoryMappingRepository pageTagsMappingRepo,
+            IPostTagsMappingRepository tagsMappingRepository, IMediaRepository media,
             ICategoryRepository categoryRepo, IPublicationRepository publicationRepo,
             IPagePostRepository pagePostRepo, IPublicationCategoryMappingRepository publicationCategoryMappingRepo)
         {
             _postMappingRepo = pageTagsMappingRepo;
+            _mediaRepo = media;
+            _commentRepo = commentRepository;
             _postTagsMappingRepo = tagsMappingRepository;
             _tagsRepo = tagsRepo;
             _categoryRepo = categoryRepo;
@@ -231,8 +249,7 @@ namespace CCDbApi.Service
 
             return data.ToList();
         }
-        // Page Post
-
+        //comment
         public async Task<PagePost> AddPagePostAsync(PagePost pagePost)
         {
             var added = await _pagePostRepo.AddAsync(pagePost);
@@ -244,9 +261,6 @@ namespace CCDbApi.Service
 
             return null;
         }
-
-
-
         public async Task<PagePost> UpdatePagePostAsync(PagePost pagePost)
         {
             var updated = await _pagePostRepo.UpdateAsync(pagePost);
@@ -259,8 +273,6 @@ namespace CCDbApi.Service
             return null;
         }
 
-
-
         public async Task<PagePost> DeletePagePostAsync(PagePost pagePost)
         {
             var deleted = await _pagePostRepo.RemoveAsync(pagePost);
@@ -272,9 +284,6 @@ namespace CCDbApi.Service
 
             return null;
         }
-
-
-
         public async Task<PagePost> GetPagePostAsync(string id)
         {
             var data = await _pagePostRepo.FindAsync(
@@ -288,9 +297,66 @@ namespace CCDbApi.Service
 
             return data.FirstOrDefault();
         }
+        public async Task<List<Comment>> GetAllCommentsAsync()
+        {
+            var data = await _commentRepo.GetAllAsync();
 
+            if (data == null)
+            {
+                return null;
+            }
 
+            return data.ToList();
+        }
+        // Page Post
 
+        public async Task<Comment> AddCommentAsync(Comment pagePost)
+        {
+            var added = await _commentRepo.AddAsync(pagePost);
+
+            if (added == 1)
+            {
+                return pagePost;
+            }
+
+            return null;
+        }
+        public async Task<Comment> UpdateCommentAsync(Comment pagePost)
+        {
+            var updated = await _commentRepo.UpdateAsync(pagePost);
+
+            if (updated == 1)
+            {
+                return pagePost;
+            }
+
+            return null;
+        }
+
+        public async Task<Comment> DeleteCommentAsync(Comment pagePost)
+        {
+            var deleted = await _commentRepo.RemoveAsync(pagePost);
+
+            if (deleted == 1)
+            {
+                return pagePost;
+            }
+
+            return null;
+        }
+        public async Task<Comment> GetCommentAsync(string id)
+        {
+            var data = await _commentRepo.FindAsync(
+                x => x.Id.ToString() == id
+            );
+
+            if (data == null)
+            {
+                return null;
+            }
+
+            return data.FirstOrDefault();
+        }
         public async Task<List<PagePost>> GetAllPagePostsAsync()
         {
             var data = await _pagePostRepo.GetAllAsync();
@@ -384,7 +450,7 @@ namespace CCDbApi.Service
             return true;
         }
 
-        public async  Task<List<CategoryDto>> GetAllCategoriesByPostIdAsync(string postId)
+        public async Task<List<CategoryDto>> GetAllCategoriesByPostIdAsync(string postId)
         {
             var existing = await _postMappingRepo.FindAsync(a => a.PostId == postId);
             if (existing != null)
@@ -408,7 +474,7 @@ namespace CCDbApi.Service
             return null;
         }
 
-        public async  Task<List<TagsDto>> GetAllTagsByPostIdAsync(string postId)
+        public async Task<List<TagsDto>> GetAllTagsByPostIdAsync(string postId)
         {
             var existing = await _postTagsMappingRepo.FindAsync(a => a.PostId == postId);
             if (existing != null)
@@ -423,12 +489,54 @@ namespace CCDbApi.Service
                         Id = category.Id.ToString(),
                         Name = category.Name,
                         Slug = category.Slug,
-                 
+
                     });
                 }
                 return data;
             }
             return null;
+        }
+
+        public async Task<Media> AddMediaAsync(Media tags)
+        {
+            await _mediaRepo.AddAsync(tags);
+            return tags;
+        }
+
+        public async Task<Media> UpdateMediaAsync(Media tags)
+        {
+            await _mediaRepo.UpdateAsync(tags);
+            return tags;
+        }
+
+        public async Task<Media> DeleteMediaAsync(Media tags)
+        {
+           var data= await _mediaRepo.RemoveAsync(tags);
+            if (data == 1)
+            {
+                return tags;
+            }
+            return null;
+        }
+
+        public async Task<Media> GetMediaAsync(string id)
+        {
+            var data = await _mediaRepo.FindAsync(a => a.Id.ToString() == id);
+            if (data == null)
+            {
+                return null;
+            }
+            return data.FirstOrDefault();
+        }
+
+        public async  Task<List<Media>> GetAllMediaAsync()
+        {
+            var data = await _mediaRepo.GetAllAsync();
+            if (data == null)
+            {
+                return null;
+            }
+            return data.ToList();
         }
     }
 }

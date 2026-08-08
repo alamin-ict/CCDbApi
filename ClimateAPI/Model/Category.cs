@@ -2,13 +2,13 @@
 
 namespace CCDbApi.Model
 {
-    public class Category:BaseEntity
+    public class Category : BaseEntity
     {
         public string Name { get; set; }
         public string Slug { get; set; }
         public string? Description { get; set; }
         public string? ParentId { get; set; }
-        public string UserId {  get; set; }
+        public string UserId { get; set; }
 
     }
     public class Tags : BaseEntity
@@ -116,11 +116,18 @@ namespace CCDbApi.Model
     public class Media : BaseEntity
     {
         public string MediaUrl { get; set; }
+        public string? Title { get; set; }
+        public string? Description { get; set; }
+        public string? Type { get; set; }
+        public string? Size { get; set; }
+        public string Extension { get; set; }
+        public string FileName { get; set; }
         public string UserId { get; set; }
     }
     public class Comment : BaseEntity
     {
         public string Name { get; set; }
+        public CommentStatus Status { get; set; }
         public string Email { get; set; }
         public string Description { get; set; }
         public string UserId { get; set; }
@@ -151,7 +158,7 @@ namespace CCDbApi.Model
         public string PublicationId { get; set; }
         public int Quantity { get; set; } = 1;
         public decimal Price { get; set; }
-        public string OrderId {  get; set; }
+        public string OrderId { get; set; }
     }
     public class OrderAttachment : BaseEntity
     {

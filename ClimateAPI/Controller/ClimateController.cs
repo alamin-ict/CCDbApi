@@ -65,6 +65,7 @@ namespace CCDbApi.Controller
                 CreatedDate = DateTime.Now,
                 UserName = userData.UserName,
                 Email = userData.Email,
+                Status = UserStatus.Pending,
                 Password = userData.Password,
                 RoleId = role.Id.ToString(),
                 CreatedBy = id.ToString(),
@@ -108,14 +109,155 @@ namespace CCDbApi.Controller
             }
 
             var token = await _climateService.GetToken(existUser);
+            var role = await _climateService.GetUserByIdAsync(existUser.RoleId);
             return Ok(new
             {
                 message = "Login succesfull",
                 user = existUser,
-                token = token
+                token = token,
+                role
             });
 
         }
+
+        [HttpPost("updateUser")]
+     
+        public async Task<IActionResult> UpdateData([FromBody] UpdateUserViewModel dto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new
+                {
+                    message = "Invalid update user data.",
+                    errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                });
+            }
+            // Retrieve user from context
+            var user = HttpContext.User;
+            // Optionally retrieve user ID if needed
+            var userId = user.FindFirst("Id")?.Value;
+            var email = user.FindFirst("Email")?.Value;
+            var existUser = await _climateService.GetUserByIdAsync(dto.Id);
+            if (existUser == null)
+            {
+                return Ok(new
+                {
+                    message = "No User existed . Please at first register the user",
+
+
+                });
+            }
+            var roles = await _climateService.GetDbRoleAsync();
+            if (!roles.Any(r => r.Type == dto.Role))
+            {
+                return BadRequest(new
+                {
+                    message = "Invalid role ID. The specified role does not exist.",
+                    errors = new[] { "The provided role ID is not valid." }
+                });
+            }
+            var role = roles.FirstOrDefault(r => r.Type == dto.Role);
+            existUser.UpdatedDate = DateTime.Now;
+            existUser.UpdatedBy = userId;
+            existUser.Email = dto.Email;
+            existUser.Status = dto.Status;
+            existUser.RoleId = role.Id.ToString();
+            existUser.Password = dto.Password;
+            existUser.UserName = dto.UserName;
+            existUser = await _climateService.UpdateUserAsync(existUser);
+            return Ok(new
+            {
+                message = "Updated user succesfull",
+                user = existUser,
+                role
+            });
+
+        }
+
+
+        [HttpGet("getAllUser")]
+
+        public async Task<IActionResult> GetAllData()
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new
+                {
+                    message = "Invalid update user data.",
+                    errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                });
+            }
+            // Retrieve user from context
+            var user = HttpContext.User;
+            // Optionally retrieve user ID if needed
+            var userId = user.FindFirst("Id")?.Value;
+            var email = user.FindFirst("Email")?.Value;
+            var users = await _climateService.GetAllUserAsync();
+            var roles = await _climateService.GetDbRoleAsync();
+            if (users == null)
+            {
+                return Ok(new
+                {
+                    message = "No User existed . Please at first register the user",
+
+
+                });
+            }
+           
+            return Ok(new
+            {
+                message = "Users are retrived succesfully",
+                users,
+                roles
+               
+            });
+
+        }
+
+
+
+        [HttpDelete("deleteUser")]
+
+        public async Task<IActionResult> DeeleteUser(string id)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new
+                {
+                    message = "Invalid update user data.",
+                    errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                });
+            }
+            // Retrieve user from context
+            var user = HttpContext.User;
+            // Optionally retrieve user ID if needed
+            var userId = user.FindFirst("Id")?.Value;
+            var email = user.FindFirst("Email")?.Value;
+            var existUser = await _climateService.GetUserByIdAsync(id);
+            if (existUser == null)
+            {
+                return Ok(new
+                {
+                    message = "No User existed . Please at first register the user",
+
+
+                });
+            }
+          
+            
+            existUser = await _climateService.DeleteUserAsync(existUser);
+            if (existUser == null)
+            {
+                return StatusCode(500, "Failed to delete user");
+            }
+            return Ok(new
+            {
+                message = "Deleted user succesfull",
+                user = existUser,
+            });
+
+        }
+
         [HttpPost("addSubscribe")]
         [AllowAnonymous]
         public async Task<IActionResult> addSubscribe([FromBody] SubscribeViewModel sub)
@@ -143,7 +285,7 @@ namespace CCDbApi.Controller
             var subscribe = await _climateService.AddSubscribeAsync(subs);
             return Ok(new
             {
-                message = "Login succesfull",
+                message = "data retrived succesfully",
                 Subscribe = subscribe
             });
 

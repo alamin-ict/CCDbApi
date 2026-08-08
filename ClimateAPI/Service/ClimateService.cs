@@ -15,23 +15,25 @@ namespace CCDbApi.Service
 {
     public interface IClimateService
     {
-       Task<User> GetUserByIdAsync(string id);  
-        //
-       Task<User> InsertIntoDbUserAsync(User user);
+        Task<User> GetUserByIdAsync(string id);
+        Task<User> UpdateUserAsync(User user);
+        Task<User> DeleteUserAsync(User user);
+        Task<List<User>> GetAllUserAsync();
+        Task<User> InsertIntoDbUserAsync(User user);
         Task<TrainingInfo> InsertIntoDbTrainingInfoAsync(TrainingInfo training);
         Task<TrainingInfo> GetTrainingInfoByIdAsync(Guid id);
         Task<TrainingInfo> UpdateIntoDbTrainingInfoAsync(TrainingInfo training);
         Task<TrainingInfo> DeleteTrainingInfoDataFromDB(TrainingInfo partner);
         Task<List<TrainingInfo>> GetAllTrainingInfoAsync();
-        Task<Role> GetUserRoleByIdAsync(string id); 
+        Task<Role> GetUserRoleByIdAsync(string id);
         Task<Role> InsertIntoDbRoleAsync(Role role);
         Task<List<Role>> GetDbRoleAsync();
-
+        Task<Role> GetRoleByIdAsync(string id);
         Task<Contact> GetContactByIdAsync(string id);
-        Task<Contact> InsertIntoDbContactAsync(Contact contact);  
+        Task<Contact> InsertIntoDbContactAsync(Contact contact);
         Task<Partner> InsertIntoDbPartnerAsync(Partner partner);
-        Task<NewsContent> InsertIntoDbNewsContentAsync(NewsContent newsContent);    
-        Task<ImageConfiguration> AddImageConfigurationAsync(ImageConfiguration imageConfiguration); 
+        Task<NewsContent> InsertIntoDbNewsContentAsync(NewsContent newsContent);
+        Task<ImageConfiguration> AddImageConfigurationAsync(ImageConfiguration imageConfiguration);
         Task<SliderImage> AddSliderImageAsync(SliderImage sliderImage);
         Task<string> GetToken(User user);
         Task<User> GetUserAsync(string name, string password);
@@ -42,8 +44,8 @@ namespace CCDbApi.Service
         Task<List<Partner>> GetAllPartnersOrClientsAsync(string userId);
         Task<List<Partner>> GetAllPartnersOrClients();
         Task<User> GetUserByAsync(string userName, string password, string email, string userRole);
-        Task<List<ImageConfiguration>> GetImageConfigurationsAsync(string userId);    
-        Task<List<SliderImage>> GetSliderImagesAsync(string userId);  
+        Task<List<ImageConfiguration>> GetImageConfigurationsAsync(string userId);
+        Task<List<SliderImage>> GetSliderImagesAsync(string userId);
         Task<List<NewsContent>> GetAllNewsContentAsync(string userId);
         Task<List<Subscribe>> GetAllSubscribeAsync();
         Task<Subscribe> AddSubscribeAsync(Subscribe sub);
@@ -54,7 +56,8 @@ namespace CCDbApi.Service
         Task<TraineeInfo> DeleteTraineeInfoAsync(TraineeInfo trainee);
     }
 
-    public class ClimateService : IClimateService {
+    public class ClimateService : IClimateService
+    {
 
         private readonly IUserRepository _userRepository;
         private readonly IRoleRepository _roleRepository;
@@ -64,13 +67,13 @@ namespace CCDbApi.Service
         private readonly IPartnerRepository _partnerReository;
         private readonly ISliderImageRepository _sliderImageRepository;
         private readonly IConfiguration _configuration;
-        private readonly ISubscribeRepository _subscribeRepository; 
+        private readonly ISubscribeRepository _subscribeRepository;
         private readonly ITrainingInfoRepository _trainingInfoRepository;
         private readonly ITraineeInfoRepository _traineeInfoRepository;
-        public ClimateService(IConfiguration configuration,IUserRepository userRepository, IRoleRepository roleRepository, IContactRepository contactRepository,
+        public ClimateService(IConfiguration configuration, IUserRepository userRepository, IRoleRepository roleRepository, IContactRepository contactRepository,
            IImageConfigurationRepository imageConfigurationRepository, INewsContentRepository newsContentPartnerRepository,
-           IPartnerRepository partnerReository, ISliderImageRepository sliderImageRepository,ISubscribeRepository sub,
-           ITrainingInfoRepository trainingInfoRepository,ITraineeInfoRepository traineeInfoRepository)
+           IPartnerRepository partnerReository, ISliderImageRepository sliderImageRepository, ISubscribeRepository sub,
+           ITrainingInfoRepository trainingInfoRepository, ITraineeInfoRepository traineeInfoRepository)
         {
             _userRepository = userRepository;
             _roleRepository = roleRepository;
@@ -95,21 +98,55 @@ namespace CCDbApi.Service
         }
         public async Task<User> GetUserByIdAsync(string id)
         {
-            var users= await _userRepository.FindAsync(a=>a.Id==Guid.Parse(id)); 
+            var users = await _userRepository.FindAsync(a => a.Id == Guid.Parse(id));
+            if (users == null)
+            {
+                return null;
+            }
             return users.FirstOrDefault();
+        }
+        public async Task<List<User>> GetAllUserAsync()
+        {
+            var users = await _userRepository.GetAllAsync();
+            if (users == null)
+            {
+                return null;
+            }
+            return users.ToList();
+        }
+
+        public async Task<User> UpdateUserAsync(User user)
+        {
+            var data = await _userRepository.UpdateAsync(user);
+            if (data == 1)
+            {
+                return user;
+            }
+            return null;
+        }
+
+
+        public async Task<User> DeleteUserAsync(User user)
+        {
+            var data = await _userRepository.UpdateAsync(user);
+            if (data == 1)
+            {
+                return user;
+            }
+            return null;
         }
         public async Task<List<Partner>> GetAllPartnersOrClientsAsync(string userId)
         {
-            var partners=await _partnerReository.FindAsync(a=>a.UserId==userId);    
-            return partners.ToList();   
+            var partners = await _partnerReository.FindAsync(a => a.UserId == userId);
+            return partners.ToList();
         }
         public async Task<List<Role>> GetDbRoleAsync()
         {
             var roles = await _roleRepository.GetAllAsync();
-            if(roles == null)
+            if (roles == null)
             {
                 return new List<Role>();
-            }   
+            }
             return roles.ToList();
         }
         public async Task<List<Partner>> GetAllPartnersOrClients()
@@ -120,12 +157,12 @@ namespace CCDbApi.Service
         public async Task<User> InsertIntoDbUserAsync(User user)
         {
             await _userRepository.AddAsync(user);
-          
+
             return user;
         }
         public async Task<User> GetUserAsync(string name, string password)
         {
-            var users=await _userRepository.FindAsync(a=>(a.UserName==name||a.Email==name)&&a.Password==password);
+            var users = await _userRepository.FindAsync(a => (a.UserName == name || a.Email == name) && a.Password == password);
             if (users.Any())
             {
                 return users.FirstOrDefault();
@@ -148,20 +185,24 @@ namespace CCDbApi.Service
             }
             return null;
         }
-
-        public async  Task<Role> GetUserRoleByIdAsync(string name)
+        public async Task<Role> GetRoleByIdAsync(string id)
         {
-            var role=await _roleRepository.FindAsync(a=>a.Name==name);
+            var role = await _roleRepository.FindAsync(a => a.Id.ToString() == id);
             return role.FirstOrDefault();
         }
-       public async Task<Role> InsertIntoDbRoleAsync(Role role)
+        public async Task<Role> GetUserRoleByIdAsync(string name)
+        {
+            var role = await _roleRepository.FindAsync(a => a.Name == name);
+            return role.FirstOrDefault();
+        }
+        public async Task<Role> InsertIntoDbRoleAsync(Role role)
         {
             await _roleRepository.AddAsync(role);
-            return role;    
+            return role;
         }
         public async Task<Contact> GetContactByIdAsync(string id)
         {
-            var contact=await _contactRepository.FindAsync(a=>a.UserId == id);
+            var contact = await _contactRepository.FindAsync(a => a.UserId == id);
             return contact.FirstOrDefault();
         }
         public async Task<Partner> GetPartnerByIdAsync(Guid id)
@@ -172,38 +213,38 @@ namespace CCDbApi.Service
         public async Task<Partner> DeletedPartnerDataFromDB(Partner partner)
         {
             await _partnerReository.RemoveAsync(partner);
-            return partner; 
+            return partner;
         }
-        public  async Task<Contact> InsertIntoDbContactAsync(Contact contact)
+        public async Task<Contact> InsertIntoDbContactAsync(Contact contact)
         {
-            await _contactRepository.AddAsync(contact); 
+            await _contactRepository.AddAsync(contact);
             return contact;
         }
         public async Task<Partner> InsertIntoDbPartnerAsync(Partner partner)
         {
-            await _partnerReository.AddAsync(partner);  
-            return partner; 
+            await _partnerReository.AddAsync(partner);
+            return partner;
         }
         public async Task<Partner> UpdatedDataIntoDbPartnerAsync(Partner partner)
         {
-            await _partnerReository.UpdateAsync(partner);   
-            return partner; 
+            await _partnerReository.UpdateAsync(partner);
+            return partner;
         }
 
         public async Task<NewsContent> InsertIntoDbNewsContentAsync(NewsContent newsContent)
         {
             await _newsContentPartnerRepository.AddAsync(newsContent);
-            return newsContent; 
+            return newsContent;
         }
         public async Task<ImageConfiguration> AddImageConfigurationAsync(ImageConfiguration imageConfiguration)
         {
             await _imageConfigurationRepository.AddAsync(imageConfiguration);
-            return imageConfiguration;  
+            return imageConfiguration;
         }
         public async Task<SliderImage> AddSliderImageAsync(SliderImage sliderImage)
         {
             await _sliderImageRepository.AddAsync(sliderImage);
-            return sliderImage; 
+            return sliderImage;
         }
         //public async Task<string> GetToken(User user, string AppSecret)
         //{
@@ -323,16 +364,16 @@ namespace CCDbApi.Service
 
         }
 
-        public async  Task<List<ImageConfiguration>> GetImageConfigurationsAsync(string userId)
+        public async Task<List<ImageConfiguration>> GetImageConfigurationsAsync(string userId)
         {
-            var imageConfigurations = await _imageConfigurationRepository.FindAsync(a=>a.UserId==userId);
+            var imageConfigurations = await _imageConfigurationRepository.FindAsync(a => a.UserId == userId);
             if (imageConfigurations == null)
             {
-                return new List<ImageConfiguration>();  
+                return new List<ImageConfiguration>();
             }
             return imageConfigurations.ToList();
         }
-       public  async Task<List<SliderImage>> GetSliderImagesAsync(string userId)
+        public async Task<List<SliderImage>> GetSliderImagesAsync(string userId)
         {
             var sliderImages = await _sliderImageRepository.FindAsync(a => a.UserId == userId);
             if (sliderImages == null)
@@ -341,7 +382,7 @@ namespace CCDbApi.Service
             }
             return sliderImages.ToList();
         }
-       public async Task<List<NewsContent>> GetAllNewsContentAsync(string userId)
+        public async Task<List<NewsContent>> GetAllNewsContentAsync(string userId)
         {
             var newsContents = await _newsContentPartnerRepository.FindAsync(a => a.UserId == userId);
             if (newsContents == null)
@@ -359,7 +400,7 @@ namespace CCDbApi.Service
                 return subscribes.ToList();
             }
             catch (Exception ex) { return null; }
-           }
+        }
 
         public async Task<Subscribe> AddSubscribeAsync(Subscribe sub)
         {
@@ -368,14 +409,14 @@ namespace CCDbApi.Service
                 await _subscribeRepository.AddAsync(sub);
                 return sub;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 return null;
             }
 
         }
 
-        public async  Task<TrainingInfo> InsertIntoDbTrainingInfoAsync(TrainingInfo training)
+        public async Task<TrainingInfo> InsertIntoDbTrainingInfoAsync(TrainingInfo training)
         {
             try
             {
@@ -392,8 +433,8 @@ namespace CCDbApi.Service
         {
             try
             {
-                var data=await _trainingInfoRepository.FindAsync(a=>a.Id==id);
-                if(data == null)
+                var data = await _trainingInfoRepository.FindAsync(a => a.Id == id);
+                if (data == null)
                 {
                     return null;
                 }
@@ -405,7 +446,7 @@ namespace CCDbApi.Service
             }
         }
 
-        public async  Task<TrainingInfo> UpdateIntoDbTrainingInfoAsync(TrainingInfo training)
+        public async Task<TrainingInfo> UpdateIntoDbTrainingInfoAsync(TrainingInfo training)
         {
             try
             {
@@ -418,7 +459,7 @@ namespace CCDbApi.Service
             }
         }
 
-        public async  Task<TrainingInfo> DeleteTrainingInfoDataFromDB(TrainingInfo training)
+        public async Task<TrainingInfo> DeleteTrainingInfoDataFromDB(TrainingInfo training)
         {
             try
             {
@@ -431,12 +472,12 @@ namespace CCDbApi.Service
             }
         }
 
-        public async  Task<List<TrainingInfo>> GetAllTrainingInfoAsync()
+        public async Task<List<TrainingInfo>> GetAllTrainingInfoAsync()
         {
             try
             {
-                var training=await _trainingInfoRepository.GetAllAsync();
-                if(training == null)
+                var training = await _trainingInfoRepository.GetAllAsync();
+                if (training == null)
                 {
                     return null;
                 }
@@ -449,7 +490,7 @@ namespace CCDbApi.Service
 
         }
 
-        public async  Task<List<TraineeInfo>> GetAllTraineeInfoAsync()
+        public async Task<List<TraineeInfo>> GetAllTraineeInfoAsync()
         {
             try
             {
@@ -466,11 +507,11 @@ namespace CCDbApi.Service
             }
         }
 
-        public async  Task<TraineeInfo> GetTraineeInfoByIdAsync(Guid id)
+        public async Task<TraineeInfo> GetTraineeInfoByIdAsync(Guid id)
         {
             try
             {
-                var training = await _traineeInfoRepository.FindAsync(a=>a.Id==id);
+                var training = await _traineeInfoRepository.FindAsync(a => a.Id == id);
                 if (training == null)
                 {
                     return null;
@@ -483,12 +524,12 @@ namespace CCDbApi.Service
             }
         }
 
-        public async  Task<TraineeInfo> InsertTraineeInfoAsync(TraineeInfo trainee)
+        public async Task<TraineeInfo> InsertTraineeInfoAsync(TraineeInfo trainee)
         {
             try
             {
                 var training = await _traineeInfoRepository.AddAsync(trainee);
-                
+
                 return trainee;
             }
             catch (Exception ex)
@@ -497,7 +538,7 @@ namespace CCDbApi.Service
             }
         }
 
-        public async  Task<TraineeInfo> UpdateTraineeInfoAsync(TraineeInfo trainee)
+        public async Task<TraineeInfo> UpdateTraineeInfoAsync(TraineeInfo trainee)
         {
             try
             {
@@ -511,7 +552,7 @@ namespace CCDbApi.Service
             }
         }
 
-        public async  Task<TraineeInfo> DeleteTraineeInfoAsync(TraineeInfo trainee)
+        public async Task<TraineeInfo> DeleteTraineeInfoAsync(TraineeInfo trainee)
         {
             try
             {
