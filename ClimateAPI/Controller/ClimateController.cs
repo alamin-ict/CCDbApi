@@ -107,6 +107,15 @@ namespace CCDbApi.Controller
 
                 });
             }
+            if (existUser.Status != UserStatus.Active)
+            {
+                return Ok(new
+                {
+                    message = $"User is not active . Current status is {existUser.Status}",
+
+
+                });
+            }
 
             var token = await _climateService.GetToken(existUser);
             var role = await _climateService.GetUserByIdAsync(existUser.RoleId);

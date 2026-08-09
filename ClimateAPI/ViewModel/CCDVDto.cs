@@ -112,6 +112,7 @@ namespace CCDbApi.ViewModel
         public Status Status { get; set; }
         public string Author { get; set; }
         public string? AuthorId { get; set; }
+        public string Type { get; set; }
         public string CoverImage { get; set; }
         public string? Publication { get; set; }
         public List<string>? CategoryIds { get; set; }

@@ -203,7 +203,7 @@ namespace CCDbApi.Controller
                 Size = fileSize,
 
                 Extension = fileExtension ?? string.Empty,
-                FileName = fileName ?? string.Empty,
+                FileName = originalFileName ?? string.Empty,
 
                 UserId = userId!,
 
@@ -242,6 +242,7 @@ namespace CCDbApi.Controller
                 MediaId = media.Id
             });
         }
+        
         [HttpDelete("deleteMedia")]
         public async Task<IActionResult> DeleteMediaAsync(string id)
         {
@@ -1286,7 +1287,7 @@ namespace CCDbApi.Controller
                         AuthorId = dto.AuthorId,
                         CoverImage = dto.CoverImage,
                         Date = DateTime.Now,
-
+                        Type = dto.Type,
                         FullContent = dto.FullContent,
                         Permalink = dto.Permalink,
                         Publication = dto.Publication,
@@ -1321,7 +1322,7 @@ namespace CCDbApi.Controller
                     tag.AuthorId = dto.AuthorId;
                     tag.CoverImage = dto.CoverImage;
                     tag.Status = dto.Status;
-
+                    tag.Type = dto.Type;
                     tag.FullContent = dto.FullContent;
 
                     tag.Title = dto.Title;

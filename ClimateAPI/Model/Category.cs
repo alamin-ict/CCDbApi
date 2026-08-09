@@ -70,6 +70,7 @@ namespace CCDbApi.Model
         public string CoverImage { get; set; } = string.Empty;
         public string? Publication { get; set; }
         public string UserId { get; set; }
+        public string Type { get; set; }  // post, page
 
     }
     public class GeneralSettings : BaseEntity
