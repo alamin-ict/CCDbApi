@@ -58,7 +58,7 @@ namespace CCDbApi.Controller
                 });
             }
             var id = Guid.NewGuid();
-           
+
             var userdata = new User()
             {
                 Id = id,
@@ -100,7 +100,7 @@ namespace CCDbApi.Controller
             var existUser = await _climateService.GetUserAsync(log.UserName, log.Password);
             if (existUser == null)
             {
-                return Ok(new
+                return BadRequest(new
                 {
                     message = "No User existed . Please at first register the user",
 
@@ -109,7 +109,7 @@ namespace CCDbApi.Controller
             }
             if (existUser.Status != UserStatus.Active)
             {
-                return Ok(new
+                return BadRequest(new
                 {
                     message = $"User is not active . Current status is {existUser.Status}",
 
@@ -118,7 +118,7 @@ namespace CCDbApi.Controller
             }
 
             var token = await _climateService.GetToken(existUser);
-            var role = await _climateService.GetUserByIdAsync(existUser.RoleId);
+            var role = await _climateService.GetRoleByIdAsync(existUser.RoleId);
             return Ok(new
             {
                 message = "Login succesfull",
@@ -130,7 +130,7 @@ namespace CCDbApi.Controller
         }
 
         [HttpPost("updateUser")]
-     
+
         public async Task<IActionResult> UpdateData([FromBody] UpdateUserViewModel dto)
         {
             if (!ModelState.IsValid)
@@ -168,11 +168,11 @@ namespace CCDbApi.Controller
             var role = roles.FirstOrDefault(r => r.Type == dto.Role);
             existUser.UpdatedDate = DateTime.Now;
             existUser.UpdatedBy = userId;
-            existUser.Email = dto.Email;
-            existUser.Status = dto.Status;
-            existUser.RoleId = role.Id.ToString();
-            existUser.Password = dto.Password;
-            existUser.UserName = dto.UserName;
+            existUser.Email = dto.Email != null ? dto.Email : existUser.Email;
+            existUser.Status = dto.Status != null ? dto.Status : existUser.Status;
+            existUser.RoleId = dto.Role != null ? role.Id.ToString() : existUser.RoleId;
+            existUser.Password = dto.Password != null|| dto.Password != "" ? dto.Password : existUser.Password;
+            existUser.UserName = dto.UserName != null ? dto.UserName : existUser.UserName;
             existUser = await _climateService.UpdateUserAsync(existUser);
             return Ok(new
             {
@@ -212,13 +212,13 @@ namespace CCDbApi.Controller
 
                 });
             }
-           
+
             return Ok(new
             {
                 message = "Users are retrived succesfully",
                 users,
                 roles
-               
+
             });
 
         }
@@ -252,8 +252,8 @@ namespace CCDbApi.Controller
 
                 });
             }
-          
-            
+
+
             existUser = await _climateService.DeleteUserAsync(existUser);
             if (existUser == null)
             {
