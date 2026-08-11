@@ -33,7 +33,7 @@ namespace CCDbApi.Service
         Task<Publication> GetPublicationAsync(string id);
         Task<List<Publication>> GetAllPublicationsAsync();
         Task<List<PublicationCategoryMapping>> AddPublicationCategoryMappingAsync(List<PublicationCategoryMapping> publicationCategoryMapping);
-        Task<List<CategoryDto>> GetPublicationCategoryMappingsAsync(string publicationId);
+        Task<List<CategoryDto?>> GetPublicationCategoryMappingsAsync(string publicationId);
 
 
         // Page Post
@@ -381,11 +381,15 @@ namespace CCDbApi.Service
             return publicationCategoryMapping;
         }
 
-        public async Task<List<CategoryDto>> GetPublicationCategoryMappingsAsync(string publicationId)
+        public async Task<List<CategoryDto?>> GetPublicationCategoryMappingsAsync(string publicationId)
         {
             var existing = await _publicationCategoryMappingRepo.FindAsync(a => a.PublicationId == publicationId);
-            if (existing != null)
+
+            if (existing == null || !existing.Any())
             {
+                return new List<CategoryDto>();
+            }
+          
                 var data = new List<CategoryDto>();
                 var categoriesId = existing.Select(a => a.CategoryId).Distinct().ToList();
                 var categories = await _categoryRepo.FindAsync(a => categoriesId.Contains(a.Id.ToString()));
@@ -401,8 +405,7 @@ namespace CCDbApi.Service
                     });
                 }
                 return data;
-            }
-            return null;
+         
         }
 
         public async Task<bool> AddTagAndCategoryMappingWithPagePostAsync(PagePost page, List<string>? catIds, List<string>? TagIds)

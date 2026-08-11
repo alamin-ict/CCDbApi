@@ -22,7 +22,7 @@ namespace IYogaBackendMicroservice.Repository
         public DbSet<Publication> Publications { get; set; }
         public DbSet<PagePost> PagePosts { get; set; }
         public DbSet<PostCategoryMapping> PostCategoriesMappings { get; set; }
-        public DbSet<PublicationCategoryMapping> PublicationMappings { get; set; }
+        public DbSet<PublicationCategoryMapping> PublicationCategoryMappings { get; set; }
         public DbSet<PostTagsMapping> PostTagsMappings { get; set; }
         public DbSet<Appearance> Appearance { get; set; }
         public DbSet<GeneralSettings> GeneralSettings { get; set; }   
