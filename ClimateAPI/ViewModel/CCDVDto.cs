@@ -114,7 +114,12 @@ namespace CCDbApi.ViewModel
         public string? AuthorId { get; set; }
         public string Type { get; set; }
         public string CoverImage { get; set; }
-        public string? Publication { get; set; }
+        public bool? IsSellInStore { get; set; }
+        public decimal? Price { get; set; }
+        public int? Year { get; set; }
+        public string? DownloadUrl { get; set; }
+        public int? PageSize { get; set; }
+        public string? Publisher { get; set; }
         public List<string>? CategoryIds { get; set; }
         public List<string>? TagsIds { get; set; }
     }
@@ -131,6 +136,13 @@ namespace CCDbApi.ViewModel
         public Status Status { get; set; }
         public string Author { get; set; }
         public string CoverImage { get; set; }
+        public bool? IsSellInStore { get; set; }
+        public decimal? Price { get; set; }
+        public int? Year { get; set; }
+        public string? DownloadUrl { get; set; }
+        public int? PageSize { get; set; }
+        public string? Publisher { get; set; }
+        public string Type { get; set; }  // post, page
         public List<CategoryDto>? Categories { get; set; }
         public List<TagsDto>? Tags { get; set; }
     }

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Policy;
 
 namespace CCDbApi.Controller
 {
@@ -242,7 +243,7 @@ namespace CCDbApi.Controller
                 MediaId = media.Id
             });
         }
-        
+
         [HttpDelete("deleteMedia")]
         public async Task<IActionResult> DeleteMediaAsync(string id)
         {
@@ -1245,6 +1246,13 @@ namespace CCDbApi.Controller
                     Permalink = tag.Permalink,
                     Status = tag.Status,
                     Tags = tags,
+                    Year = tag.Year,
+                    Publisher = tag.Publisher,
+                    Price = tag.Price,
+                    PageSize = tag.PageSize,
+                    IsSellInStore = tag.IsSellInStore,
+                    DownloadUrl = tag.DownloadUrl,
+                    Type = tag.Type,
                     Title = tag.Title,
                 };
                 return Ok(data);
@@ -1290,7 +1298,13 @@ namespace CCDbApi.Controller
                         Type = dto.Type,
                         FullContent = dto.FullContent,
                         Permalink = dto.Permalink,
-                        Publication = dto.Publication,
+                        DownloadUrl = dto.DownloadUrl,
+                        IsSellInStore = dto.IsSellInStore,
+                        PageSize = dto.PageSize,
+                        Price = dto.Price,
+                        Publisher = dto.Publisher,
+                        Year = dto.Year,
+
 
                         Title = dto.Title,
                         Status = dto.Status,
@@ -1315,7 +1329,12 @@ namespace CCDbApi.Controller
                     }
 
                     tag.Permalink = dto.Permalink;
-                    tag.Publication = dto.Publication;
+                    tag.DownloadUrl = dto.DownloadUrl;
+                    tag.IsSellInStore = dto.IsSellInStore;
+                    tag.PageSize = dto.PageSize;
+                    tag.Price = dto.Price;
+                    tag.Publisher = dto.Publisher;
+                    tag.Year = dto.Year;
                     tag.UpdatedBy = userId;
                     tag.UpdatedDate = DateTime.Now;
                     tag.Author = dto.Author;

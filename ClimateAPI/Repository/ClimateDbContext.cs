@@ -21,7 +21,7 @@ namespace IYogaBackendMicroservice.Repository
         public DbSet<Tags> Tags { get; set; }
         public DbSet<Publication> Publications { get; set; }
         public DbSet<PagePost> PagePosts { get; set; }
-        public DbSet<PostCategoryMapping> PostCategoriesMappings { get; set; }
+        public DbSet<PostCategoryMapping> PostCategoryMappings { get; set; }
         public DbSet<PublicationCategoryMapping> PublicationCategoryMappings { get; set; }
         public DbSet<PostTagsMapping> PostTagsMappings { get; set; }
         public DbSet<Appearance> Appearance { get; set; }

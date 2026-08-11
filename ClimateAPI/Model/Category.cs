@@ -68,7 +68,12 @@ namespace CCDbApi.Model
         public string Author { get; set; }
         public string? AuthorId { get; set; } = string.Empty;
         public string CoverImage { get; set; } = string.Empty;
-        public string? Publication { get; set; }
+        public bool? IsSellInStore { get; set; }
+        public decimal? Price { get; set; }
+        public int? Year { get; set; }
+        public string? DownloadUrl { get; set; }
+        public int? PageSize { get; set; }
+        public string? Publisher { get; set; }
         public string UserId { get; set; }
         public string Type { get; set; }  // post, page
 
