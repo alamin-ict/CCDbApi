@@ -31,7 +31,7 @@ namespace CCDbApi.Service
         Task<Publication> UpdatePublicationAsync(Publication publication);
         Task<Publication> DeletePublicationAsync(Publication publication);
         Task<Publication> GetPublicationAsync(string id);
-        Task<List<Publication>> GetAllPublicationsAsync();
+        Task<List<PublicationResponseDto>> GetAllPublicationsAsync();
         Task<List<PublicationCategoryMapping>> AddPublicationCategoryMappingAsync(List<PublicationCategoryMapping> publicationCategoryMapping);
         Task<List<CategoryDto?>> GetPublicationCategoryMappingsAsync(string publicationId);
 
@@ -238,16 +238,85 @@ namespace CCDbApi.Service
         }
 
 
-        public async Task<List<Publication>> GetAllPublicationsAsync()
+        public async Task<List<PublicationResponseDto>> GetAllPublicationsAsync()
         {
+            var publications = new List<PublicationResponseDto>();
+
+            // Get all categories
+            var categories = await _categoryRepo.GetAllAsync();
+
+            // Get all publications
             var data = await _publicationRepo.GetAllAsync();
 
-            if (data == null)
+            if (data == null || !data.Any())
             {
-                return null;
+                return publications;
             }
 
-            return data.ToList();
+            // Get publication IDs from actual publication data
+            var publicationIds = data
+                .Select(a => a.Id.ToString())
+                .ToList();
+
+            // Get all category mappings for these publications
+            var mappings = await _publicationCategoryMappingRepo
+                .FindAsync(a => publicationIds.Contains(a.PublicationId));
+
+            foreach (var pub in data)
+            {
+                // Get mappings for current publication
+                var publicationMappings = mappings?
+                    .Where(a => a.PublicationId == pub.Id.ToString())
+                    .ToList();
+
+                // Get category IDs for this publication
+                var categoryIds = publicationMappings?
+                    .Select(x => x.CategoryId)
+                    .ToList() ?? new List<string>();
+
+                // Get actual category objects
+                var publicationCategories = categories?
+                    .Where(c => categoryIds.Contains(c.Id.ToString()))
+                    .ToList();
+
+                // Convert categories to CategoryDto
+                var categoryDtos = publicationCategories?
+                    .Select(c => new CategoryDto
+                    {
+                        Id = c.Id.ToString(),
+                        Name = c.Name,
+                        Slug = c.Slug,
+                        Description = c.Description,
+                        ParentId = c.ParentId?.ToString()
+                    })
+                    .ToList() ?? new List<CategoryDto>();
+
+                var publication = new PublicationResponseDto
+                {
+                    Id = pub.Id.ToString(),
+
+                    Status = pub.Status,
+                    Author = pub.Author,
+
+                    Categories = categoryDtos,
+
+                    CoverImage = pub.CoverImage,
+                    Date = pub.Date,
+                    Description = pub.Description,
+                    DownloadUrl = pub.DownloadUrl,
+                    FullContent = pub.FullContent,
+                    PageSize = pub.PageSize,
+                    Price = pub.Price,
+                    Publisher = pub.Publisher,
+                    Slug = pub.Slug,
+                    Title = pub.Title,
+                    Year = pub.Year
+                };
+
+                publications.Add(publication);
+            }
+
+            return publications;
         }
         //comment
         public async Task<PagePost> AddPagePostAsync(PagePost pagePost)
@@ -389,23 +458,23 @@ namespace CCDbApi.Service
             {
                 return new List<CategoryDto>();
             }
-          
-                var data = new List<CategoryDto>();
-                var categoriesId = existing.Select(a => a.CategoryId).Distinct().ToList();
-                var categories = await _categoryRepo.FindAsync(a => categoriesId.Contains(a.Id.ToString()));
-                foreach (var category in categories)
+
+            var data = new List<CategoryDto>();
+            var categoriesId = existing.Select(a => a.CategoryId).Distinct().ToList();
+            var categories = await _categoryRepo.FindAsync(a => categoriesId.Contains(a.Id.ToString()));
+            foreach (var category in categories)
+            {
+                data.Add(new CategoryDto()
                 {
-                    data.Add(new CategoryDto()
-                    {
-                        Id = category.Id.ToString(),
-                        Name = category.Name,
-                        Description = category.Description,
-                        Slug = category.Slug,
-                        ParentId = category.ParentId,
-                    });
-                }
-                return data;
-         
+                    Id = category.Id.ToString(),
+                    Name = category.Name,
+                    Description = category.Description,
+                    Slug = category.Slug,
+                    ParentId = category.ParentId,
+                });
+            }
+            return data;
+
         }
 
         public async Task<bool> AddTagAndCategoryMappingWithPagePostAsync(PagePost page, List<string>? catIds, List<string>? TagIds)
@@ -514,7 +583,7 @@ namespace CCDbApi.Service
 
         public async Task<Media> DeleteMediaAsync(Media tags)
         {
-           var data= await _mediaRepo.RemoveAsync(tags);
+            var data = await _mediaRepo.RemoveAsync(tags);
             if (data == 1)
             {
                 return tags;
@@ -532,7 +601,7 @@ namespace CCDbApi.Service
             return data.FirstOrDefault();
         }
 
-        public async  Task<List<Media>> GetAllMediaAsync()
+        public async Task<List<Media>> GetAllMediaAsync()
         {
             var data = await _mediaRepo.GetAllAsync();
             if (data == null)

@@ -171,7 +171,7 @@ namespace CCDbApi.Controller
             existUser.Email = dto.Email != null ? dto.Email : existUser.Email;
             existUser.Status = dto.Status != null ? dto.Status : existUser.Status;
             existUser.RoleId = dto.Role != null ? role.Id.ToString() : existUser.RoleId;
-            existUser.Password = dto.Password != null|| dto.Password != "" ? dto.Password : existUser.Password;
+            existUser.Password = dto.Password != null&& dto.Password != "" ? dto.Password : existUser.Password;
             existUser.UserName = dto.UserName != null ? dto.UserName : existUser.UserName;
             existUser = await _climateService.UpdateUserAsync(existUser);
             return Ok(new

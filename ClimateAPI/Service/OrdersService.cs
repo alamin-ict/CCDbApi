@@ -14,9 +14,18 @@ namespace CCDbApi.Service
         Task<List<OrderDto>> GetAllOrdersByUserAsync(string userId);
         Task<List<OrderDetail>> GetAllOrderDetailsAsync(string orderId);
 
-
+        Task<OrderAttachment> AddOrderAttachmentAsync(OrderAttachment orderAttachment);
         Task<List<OrderDetail>> AddOrderDetailRangeAsync(List<OrderDetail> tags);
         Task<List<OrderDetail>> UpdateOrderDetailRangeAsync(List<OrderDetail> tags);
+
+
+        Task<Invoice> AddInvoiceAsync(Invoice tags);
+        Task<Invoice> UpdateInvoiceAsync(Invoice tags);
+        Task<Invoice> DeleteInvoiceAsync(Invoice tags);
+        Task<Invoice> GetInvoiceAsync(string id);
+        Task<Payment> AddPaymentAsync(Payment tags);
+        Task<Payment> UpdatePaymentAsync(Payment tags);
+        Task<Payment> GetPaymentAsync(string id);
     }
     public class OrdersService : IOrderService
     {
@@ -38,9 +47,6 @@ namespace CCDbApi.Service
             _paymentRepo = payment;
 
         }
-
-
-
         public async Task<Order> AddOrderAsync(Order Order)
         {
             var added = await _orderRepo.AddAsync(Order);
@@ -56,7 +62,7 @@ namespace CCDbApi.Service
             var deleted = await _orderRepo.RemoveAsync(Order);
             if (deleted == 1)
             {
-                var orderDetails = await GetAllOrderDetailsAsync(Order.Id.ToString());
+                var orderDetails = await _orderDetailRepo.FindAsync(a => a.OrderId == Order.Id.ToString());
                 if (orderDetails != null)
                 {
                     await _orderDetailRepo.RemoveRangeAsync(orderDetails);
@@ -65,10 +71,69 @@ namespace CCDbApi.Service
             }
             return null;
         }
+        public async Task<Order> GetOrderAsync(string id)
+        {
+            var data = await _orderRepo.FindAsync(a => a.Id.ToString() == id);
+            if (data == null)
+            {
+                return null;
+            }
+            return data.FirstOrDefault();
+        }
 
         public async Task<Order> UpdateOrderAsync(Order Order)
         {
             var updated = await _orderRepo.UpdateAsync(Order);
+            if (updated == 1)
+            {
+                return Order;
+            }
+            return null;
+        }
+
+        public async Task<OrderAttachment> AddOrderAttachmentAsync(OrderAttachment orderAttachment)
+        {
+            var added = await _attachmentRepo.AddAsync(orderAttachment);
+            if (added == 1)
+            {
+                return orderAttachment;
+            }
+            return null;
+
+        }
+        public async Task<Payment> AddPaymentAsync(Payment Order)
+        {
+            var added = await _paymentRepo.AddAsync(Order);
+            if (added == 1)
+            {
+                return Order;
+            }
+            return null;
+        }
+
+        public async Task<Payment> DeletePaymentAsync(Payment Order)
+        {
+            var deleted = await _paymentRepo.RemoveAsync(Order);
+            if (deleted == 1)
+            {
+               
+                return Order;
+            }
+            return null;
+        }
+        public async Task<Payment> GetPaymentAsync(string id)
+        {
+            var data = await _paymentRepo.FindAsync(a => a.Id.ToString() == id);
+            if (data == null)
+            {
+                return null;
+            }
+            return data.FirstOrDefault();
+        }
+        
+        public async Task<Payment> UpdatePaymentAsync(Payment Order)
+        {
+            var updated = await _paymentRepo.UpdateAsync(Order);
             if (updated == 1)
             {
                 return Order;
@@ -155,7 +220,45 @@ namespace CCDbApi.Service
             return orderDtos;
         }
 
+        public async Task<Invoice> AddInvoiceAsync(Invoice Order)
+        {
+            var added = await _invoiceRepo.AddAsync(Order);
+            if (added == 1)
+            {
+                return Order;
+            }
+            return null;
+        }
 
+        public async Task<Invoice> DeleteInvoiceAsync(Invoice Order)
+        {
+            var deleted = await _invoiceRepo.RemoveAsync(Order);
+            if (deleted == 1)
+            {
+               
+                return Order;
+            }
+            return null;
+        }
+
+        public async Task<Invoice> UpdateInvoiceAsync(Invoice Order)
+        {
+            var updated = await _invoiceRepo.UpdateAsync(Order);
+            if (updated == 1)
+            {
+                return Order;
+            }
+            return null;
+        }
+        public async Task<Invoice> GetInvoiceAsync(string id)
+        {
+            var data = await _invoiceRepo.FindAsync(a => a.Id.ToString() == id);
+            if (data == null)
+            {
+                return null;
+            }
+            return data.FirstOrDefault();
+        }
 
         public async Task<List<OrderDetail>> GetAllOrderDetailsAsync(string orderId)
         {
@@ -167,15 +270,15 @@ namespace CCDbApi.Service
             return data.ToList();
         }
 
-        public async Task<Order> GetOrderAsync(string id)
-        {
-            var data = await _orderRepo.FindAsync(a => a.Id.ToString() == id);
-            if (data == null)
-            {
-                return null;
-            }
-            return data.FirstOrDefault();
-        }
+        //public async Task<Order> GetOrderAsync(string id)
+        //{
+        //    var data = await _orderRepo.FindAsync(a => a.Id.ToString() == id);
+        //    if (data == null)
+        //    {
+        //        return null;
+        //    }
+        //    return data.FirstOrDefault();
+        //}
 
         public async Task<List<OrderDetail>> AddOrderDetailRangeAsync(List<OrderDetail> orderDetails)
         {

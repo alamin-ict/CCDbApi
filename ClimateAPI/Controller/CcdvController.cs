@@ -23,20 +23,27 @@ namespace CCDbApi.Controller
             _emailService = emailService;
         }
         [HttpPost("uploadMedia")]
+        [Consumes("multipart/form-data")]
         public async Task<IActionResult> UploadMediaAsync(
-       IFormFile? file,
-       string? mediaUrl,
-       string? title,
-       string? description)
+      [FromForm] UploadMediaRequest request)
         {
-            // Retrieve user information
+           
+
+            // ============================================================
+            // RETRIEVE USER INFORMATION
+            // ============================================================
+
             var user = HttpContext.User;
 
             var userId = user.FindFirst("Id")?.Value;
             var email = user.FindFirst("Email")?.Value;
 
-            // Must provide either file or mediaUrl
-            if (file == null && string.IsNullOrWhiteSpace(mediaUrl))
+            // ============================================================
+            // VALIDATE FILE OR MEDIA URL
+            // ============================================================
+
+            if (request.File == null &&
+                string.IsNullOrWhiteSpace(request.MediaUrl))
             {
                 return BadRequest(new
                 {
@@ -44,7 +51,17 @@ namespace CCDbApi.Controller
                 });
             }
 
-            string? photoUrl = mediaUrl;
+            // Don't allow both
+            if (request.File != null &&
+                !string.IsNullOrWhiteSpace(request.MediaUrl))
+            {
+                return BadRequest(new
+                {
+                    Message = "Please provide either a file or mediaUrl, not both."
+                });
+            }
+
+            string? photoUrl = null;
             string? downloadUrl = null;
             string? fileName = null;
             string? originalFileName = null;
@@ -55,8 +72,11 @@ namespace CCDbApi.Controller
             // ============================================================
             // FILE UPLOAD
             // ============================================================
-            if (file != null)
+
+            if (request.File != null)
             {
+                var file = request.File;
+
                 if (file.Length == 0)
                 {
                     return BadRequest(new
@@ -97,7 +117,7 @@ namespace CCDbApi.Controller
                 originalFileName = Path.GetFileName(file.FileName);
 
                 // Upload directory
-                string uploadPath = Path.Combine(
+                var uploadPath = Path.Combine(
                     Directory.GetCurrentDirectory(),
                     "uploads"
                 );
@@ -107,10 +127,10 @@ namespace CCDbApi.Controller
                     Directory.CreateDirectory(uploadPath);
                 }
 
-                // Generate unique filename
+                // Generate unique file name
                 fileName = $"{Guid.NewGuid()}{fileExtension}";
 
-                string filePath = Path.Combine(
+                var filePath = Path.Combine(
                     uploadPath,
                     fileName
                 );
@@ -129,7 +149,7 @@ namespace CCDbApi.Controller
                 contentType = file.ContentType;
                 fileSize = file.Length.ToString();
 
-                // File URL
+                // Public file URL
                 photoUrl =
                     $"{Request.Scheme}://{Request.Host}/uploads/{fileName}";
 
@@ -141,69 +161,104 @@ namespace CCDbApi.Controller
             // ============================================================
             // MEDIA URL
             // ============================================================
-            else if (!string.IsNullOrWhiteSpace(mediaUrl))
+
+            else if (!string.IsNullOrWhiteSpace(request.MediaUrl))
             {
-                photoUrl = mediaUrl;
+                var mediaUrl = request.MediaUrl.Trim();
 
-                // Parse public URL
-                if (Uri.TryCreate(mediaUrl, UriKind.Absolute, out var uri))
-                {
-                    // Get filename from URL path, ignoring query string
-                    fileName = Path.GetFileName(uri.LocalPath);
-
-                    // Get extension
-                    fileExtension = Path.GetExtension(uri.LocalPath).ToLowerInvariant();
-
-                    // If filename is empty, generate one
-                    if (string.IsNullOrWhiteSpace(fileName))
-                    {
-                        fileName = $"{Guid.NewGuid()}{fileExtension}";
-                    }
-
-                    // Original filename for public URL
-                    originalFileName = fileName;
-
-                    // Detect content type from extension
-                    contentType = fileExtension switch
-                    {
-                        ".jpg" or ".jpeg" => "image/jpeg",
-                        ".png" => "image/png",
-                        ".gif" => "image/gif",
-                        ".ico" => "image/x-icon",
-                        ".pdf" => "application/pdf",
-                        ".doc" => "application/msword",
-                        ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                        ".txt" => "text/plain",
-                        _ => "application/octet-stream"
-                    };
-
-                    // Public URL does not provide local file size
-                    fileSize = null;
-                }
-                else
+                // Validate URL
+                if (!Uri.TryCreate(
+                        mediaUrl,
+                        UriKind.Absolute,
+                        out var uri))
                 {
                     return BadRequest(new
                     {
                         Message = "Invalid media URL."
                     });
                 }
+
+                // Only allow HTTP / HTTPS
+                if (uri.Scheme != Uri.UriSchemeHttp &&
+                    uri.Scheme != Uri.UriSchemeHttps)
+                {
+                    return BadRequest(new
+                    {
+                        Message = "Media URL must use HTTP or HTTPS."
+                    });
+                }
+
+                // Store original public URL
+                photoUrl = mediaUrl;
+
+                // Get file name from URL
+                fileName = Path.GetFileName(uri.LocalPath);
+
+                // Get extension
+                fileExtension = Path
+                    .GetExtension(uri.LocalPath)
+                    .ToLowerInvariant();
+
+                // If URL doesn't have a file name
+                if (string.IsNullOrWhiteSpace(fileName))
+                {
+                    fileName = $"{Guid.NewGuid()}";
+                }
+
+                // If extension doesn't exist
+                if (string.IsNullOrWhiteSpace(fileExtension))
+                {
+                    fileExtension = string.Empty;
+                }
+
+                // Original file name
+                originalFileName = fileName;
+
+                // Detect content type
+                contentType = fileExtension switch
+                {
+                    ".jpg" or ".jpeg" => "image/jpeg",
+                    ".png" => "image/png",
+                    ".gif" => "image/gif",
+                    ".ico" => "image/x-icon",
+
+                    ".pdf" => "application/pdf",
+
+                    ".doc" => "application/msword",
+
+                    ".docx" =>
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+
+                    ".txt" => "text/plain",
+
+                    _ => "application/octet-stream"
+                };
+
+                // External URL doesn't have local file size
+                fileSize = null;
+
+                // No local download URL
+                downloadUrl = null;
             }
+
             // ============================================================
             // SAVE MEDIA
             // ============================================================
+
             var media = new Media
             {
                 CreatedBy = userId,
 
                 MediaUrl = photoUrl!,
 
-                Title = title,
-                Description = description,
+                Title = request.Title,
+                Description = request.Description,
 
                 Type = contentType,
                 Size = fileSize,
 
                 Extension = fileExtension ?? string.Empty,
+
                 FileName = originalFileName ?? string.Empty,
 
                 UserId = userId!,
@@ -216,6 +271,7 @@ namespace CCDbApi.Controller
             // ============================================================
             // RESPONSE
             // ============================================================
+
             return Ok(new
             {
                 Message = "Media uploaded successfully.",
@@ -224,7 +280,7 @@ namespace CCDbApi.Controller
 
                 OriginalFileName = originalFileName,
 
-                FileSize = file?.Length,
+                FileSize = request.File?.Length,
 
                 Extension = fileExtension,
 
@@ -232,9 +288,9 @@ namespace CCDbApi.Controller
 
                 Size = fileSize,
 
-                Title = title,
+                Title = request.Title,
 
-                Description = description,
+                Description = request.Description,
 
                 PhotoUrl = photoUrl,
 
@@ -243,7 +299,393 @@ namespace CCDbApi.Controller
                 MediaId = media.Id
             });
         }
+        [HttpPost("updateMedia")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UpdateMediaAsync(
+    [FromForm] UpdateMediaRequest request)
+        {
+            try
+            {
+                // ============================================================
+                // RETRIEVE USER
+                // ============================================================
 
+                var user = HttpContext.User;
+
+                var userId = user.FindFirst("Id")?.Value;
+
+                if (string.IsNullOrWhiteSpace(userId))
+                {
+                    return Unauthorized(new
+                    {
+                        Message = "User information not found."
+                    });
+                }
+
+                // ============================================================
+                // VALIDATE MEDIA ID
+                // ============================================================
+
+                if (string.IsNullOrWhiteSpace(request.Id))
+                {
+                    return BadRequest(new
+                    {
+                        Message = "Media ID is required."
+                    });
+                }
+
+                // ============================================================
+                // GET EXISTING MEDIA
+                // ============================================================
+
+                var media = await _ccdvService.GetMediaAsync(request.Id);
+
+                if (media == null)
+                {
+                    return NotFound(new
+                    {
+                        Message = "Media not found."
+                    });
+                }
+
+                // ============================================================
+                // VALIDATE FILE + URL
+                // ============================================================
+
+                if (request.File != null &&
+                    !string.IsNullOrWhiteSpace(request.MediaUrl))
+                {
+                    return BadRequest(new
+                    {
+                        Message =
+                            "Please provide either a file or mediaUrl, not both."
+                    });
+                }
+
+                // ============================================================
+                // UPDATE BASIC INFORMATION
+                // ============================================================
+
+                media.Title = request.Title;
+                media.Description = request.Description;
+
+                media.UpdatedBy = userId;
+                media.UpdatedDate = DateTime.Now;
+
+                // ============================================================
+                // FILE UPLOAD
+                // ============================================================
+
+                if (request.File != null)
+                {
+                    var file = request.File;
+
+                    if (file.Length == 0)
+                    {
+                        return BadRequest(new
+                        {
+                            Message = "Uploaded file is empty."
+                        });
+                    }
+
+                    var allowedExtensions = new[]
+                    {
+                ".png",
+                ".jpg",
+                ".jpeg",
+                ".ico",
+                ".gif",
+                ".pdf",
+                ".doc",
+                ".docx",
+                ".txt"
+            };
+
+                    var fileExtension = Path
+                        .GetExtension(file.FileName)
+                        .ToLowerInvariant();
+
+                    if (string.IsNullOrWhiteSpace(fileExtension) ||
+                        !allowedExtensions.Contains(fileExtension))
+                    {
+                        return BadRequest(new
+                        {
+                            Message =
+                                "Invalid file type. Only .png, .jpg, .jpeg, .ico, .gif, .pdf, .doc, .docx and .txt files are allowed."
+                        });
+                    }
+
+                    // ========================================================
+                    // DELETE OLD LOCAL FILE
+                    // ========================================================
+
+                    if (!string.IsNullOrWhiteSpace(media.FileName))
+                    {
+                        var oldFilePath = Path.Combine(
+                            Directory.GetCurrentDirectory(),
+                            "uploads",
+                            media.FileName
+                        );
+
+                        if (System.IO.File.Exists(oldFilePath))
+                        {
+                            try
+                            {
+                                System.IO.File.Delete(oldFilePath);
+                            }
+                            catch
+                            {
+                                // Do not fail update if old file cannot be deleted
+                            }
+                        }
+                    }
+
+                    // ========================================================
+                    // UPLOAD DIRECTORY
+                    // ========================================================
+
+                    var uploadPath = Path.Combine(
+                        Directory.GetCurrentDirectory(),
+                        "uploads"
+                    );
+
+                    if (!Directory.Exists(uploadPath))
+                    {
+                        Directory.CreateDirectory(uploadPath);
+                    }
+
+                    // ========================================================
+                    // GENERATE NEW FILE NAME
+                    // ========================================================
+
+                    var fileName =
+                        $"{Guid.NewGuid()}{fileExtension}";
+
+                    var filePath = Path.Combine(
+                        uploadPath,
+                        fileName
+                    );
+
+                    // ========================================================
+                    // SAVE FILE
+                    // ========================================================
+
+                    await using (var stream = new FileStream(
+                        filePath,
+                        FileMode.Create,
+                        FileAccess.Write,
+                        FileShare.None))
+                    {
+                        await file.CopyToAsync(stream);
+                    }
+
+                    // ========================================================
+                    // UPDATE FILE INFORMATION
+                    // ========================================================
+
+                    media.FileName =
+                        Path.GetFileName(file.FileName);
+
+                    media.Extension =
+                        fileExtension;
+
+                    media.Type =
+                        file.ContentType;
+
+                    media.Size =
+                        file.Length.ToString();
+
+                    media.MediaUrl =
+                        $"{Request.Scheme}://{Request.Host}/uploads/{fileName}";
+                }
+
+                // ============================================================
+                // EXTERNAL MEDIA URL
+                // ============================================================
+
+                else if (!string.IsNullOrWhiteSpace(request.MediaUrl))
+                {
+                    var mediaUrl =
+                        request.MediaUrl.Trim();
+
+                    // Validate URL
+                    if (!Uri.TryCreate(
+                            mediaUrl,
+                            UriKind.Absolute,
+                            out var uri))
+                    {
+                        return BadRequest(new
+                        {
+                            Message = "Invalid media URL."
+                        });
+                    }
+
+                    // Only HTTP / HTTPS
+                    if (uri.Scheme != Uri.UriSchemeHttp &&
+                        uri.Scheme != Uri.UriSchemeHttps)
+                    {
+                        return BadRequest(new
+                        {
+                            Message =
+                                "Media URL must use HTTP or HTTPS."
+                        });
+                    }
+
+                    // ========================================================
+                    // DELETE OLD LOCAL FILE IF EXISTS
+                    // ========================================================
+
+                    if (!string.IsNullOrWhiteSpace(media.FileName))
+                    {
+                        var oldFilePath = Path.Combine(
+                            Directory.GetCurrentDirectory(),
+                            "uploads",
+                            media.FileName
+                        );
+
+                        if (System.IO.File.Exists(oldFilePath))
+                        {
+                            try
+                            {
+                                System.IO.File.Delete(oldFilePath);
+                            }
+                            catch
+                            {
+                                // Ignore delete failure
+                            }
+                        }
+                    }
+
+                    // ========================================================
+                    // URL INFORMATION
+                    // ========================================================
+
+                    media.MediaUrl =
+                        mediaUrl;
+
+                    var fileName =
+                        Path.GetFileName(uri.LocalPath);
+
+                    var fileExtension =
+                        Path.GetExtension(uri.LocalPath)
+                            .ToLowerInvariant();
+
+                    if (string.IsNullOrWhiteSpace(fileName))
+                    {
+                        fileName =
+                            $"{Guid.NewGuid()}";
+                    }
+
+                    if (string.IsNullOrWhiteSpace(fileExtension))
+                    {
+                        fileExtension =
+                            string.Empty;
+                    }
+
+                    media.FileName =
+                        fileName;
+
+                    media.Extension =
+                        fileExtension;
+
+                    media.Type =
+                        fileExtension switch
+                        {
+                            ".jpg" or ".jpeg" =>
+                                "image/jpeg",
+
+                            ".png" =>
+                                "image/png",
+
+                            ".gif" =>
+                                "image/gif",
+
+                            ".ico" =>
+                                "image/x-icon",
+
+                            ".pdf" =>
+                                "application/pdf",
+
+                            ".doc" =>
+                                "application/msword",
+
+                            ".docx" =>
+                                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+
+                            ".txt" =>
+                                "text/plain",
+
+                            _ =>
+                                "application/octet-stream"
+                        };
+
+                    // External URL has no local size
+                    media.Size = null;
+                }
+
+                // ============================================================
+                // UPDATE DATABASE
+                // ============================================================
+
+                var updatedMedia =
+                    await _ccdvService.UpdateMediaAsync(media);
+
+                if (updatedMedia == null)
+                {
+                    return BadRequest(new
+                    {
+                        Message = "Failed to update media."
+                    });
+                }
+
+                // ============================================================
+                // RESPONSE
+                // ============================================================
+
+                return Ok(new
+                {
+                    Message = "Media updated successfully.",
+
+                    MediaId = updatedMedia.Id,
+
+                    FileName =
+                        updatedMedia.FileName,
+
+                    Extension =
+                        updatedMedia.Extension,
+
+                    Type =
+                        updatedMedia.Type,
+
+                    Size =
+                        updatedMedia.Size,
+
+                    Title =
+                        updatedMedia.Title,
+
+                    Description =
+                        updatedMedia.Description,
+
+                    PhotoUrl =
+                        updatedMedia.MediaUrl,
+
+                    DownloadUrl =
+                        request.File != null
+                            ? $"{Request.Scheme}://{Request.Host}/api/Common/download/{Path.GetFileNameWithoutExtension(updatedMedia.FileName)}{updatedMedia.Extension}"
+                            : null
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        Message = "An unexpected error occurred.",
+                        Error = ex.Message
+                    });
+            }
+        }
         [HttpDelete("deleteMedia")]
         public async Task<IActionResult> DeleteMediaAsync(string id)
         {
@@ -772,7 +1214,7 @@ namespace CCDbApi.Controller
                 // Optionally retrieve user ID if needed
                 var userId = user.FindFirst("Id")?.Value;
                 var email = user.FindFirst("Email")?.Value;
-                var tags = new List<Publication>();
+                var tags = new List<PublicationResponseDto>();
                 tags = await _ccdvService.GetAllPublicationsAsync();
                 return Ok(tags);
             }
