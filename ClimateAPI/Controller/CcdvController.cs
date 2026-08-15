@@ -27,7 +27,7 @@ namespace CCDbApi.Controller
         public async Task<IActionResult> UploadMediaAsync(
       [FromForm] UploadMediaRequest request)
         {
-           
+
 
             // ============================================================
             // RETRIEVE USER INFORMATION
@@ -1019,6 +1019,7 @@ namespace CCDbApi.Controller
 
         // GET: api/Catgories
         [HttpGet("getAllCategories")]
+        [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<Tags>>> getAllCategories()
         {
             if (!ModelState.IsValid)
@@ -1465,6 +1466,71 @@ namespace CCDbApi.Controller
             }
 
         }
+        // GET: api/Comments
+        [HttpGet("getAllPublicComments")]
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<Comment>>> getAllPublicComments()
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new
+                {
+                    message = "Invalid Comment data.",
+                    errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                });
+            }
+            try
+            {
+
+
+                var tags = new List<Comment>();
+                tags = await _ccdvService.GetAllPublicCommentsAsync();
+                return Ok(tags);
+            }
+            catch (Exception ex)
+            {
+                // Log ex here
+                var problem = Problem(detail: "An unexpected error occurred.", title: "Server Error");
+                return StatusCode(StatusCodes.Status500InternalServerError, problem);
+            }
+
+        }
+
+        // GET: api/Comments
+        [HttpGet("getAllUserComments")]
+
+        public async Task<ActionResult<IEnumerable<Comment>>> getAllUserComments()
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new
+                {
+                    message = "Invalid Comment data.",
+                    errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                });
+            }
+            try
+            {
+                // Retrieve user from context
+                var user = HttpContext.User;
+                // Optionally retrieve user ID if needed
+                var userId = user.FindFirst("Id")?.Value;
+                var email = user.FindFirst("Email")?.Value;
+
+                var tags = new List<Comment>();
+                tags = await _ccdvService.GetAllUserCommentsAsync(userId);
+                return Ok(tags);
+            }
+            catch (Exception ex)
+            {
+                // Log ex here
+                var problem = Problem(detail: "An unexpected error occurred.", title: "Server Error");
+                return StatusCode(StatusCodes.Status500InternalServerError, problem);
+            }
+
+        }
+
+
         // GET: api/Comment/{id}
         [HttpGet("getComment/{id}")]
         public async Task<ActionResult<Comment>> getComment(string id)
@@ -1524,7 +1590,7 @@ namespace CCDbApi.Controller
                     {
                         CreatedBy = userId,
                         CreatedDate = DateTime.Now,
-
+                        PostId = dto.PostId,
                         Email = dto.Email,
                         Name = dto.Name,
                         IsActive = true,
@@ -1552,8 +1618,9 @@ namespace CCDbApi.Controller
                     tag.UpdatedDate = DateTime.Now;
                     tag.Name = dto.Name;
                     tag.Email = dto.Email;
+                    tag.PostId = dto.PostId == null ? tag.PostId : dto.PostId;
                     tag.Status = dto.Status ?? tag.Status;
-                    tag.Description = dto.Description;
+                    tag.Description = dto.Description ?? tag.Description;
                     tag = await _ccdvService.UpdateCommentAsync(tag);
                     if (tag == null)
                     {
@@ -1620,7 +1687,8 @@ namespace CCDbApi.Controller
         //comment
         // GET: api/PagePosts
         [HttpGet("getAllPagePosts")]
-        public async Task<ActionResult<IEnumerable<Tags>>> getAllPagePosts()
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<PagePostResponseDto>>> getAllPagePosts()
         {
             if (!ModelState.IsValid)
             {
@@ -1632,12 +1700,13 @@ namespace CCDbApi.Controller
             }
             try
             {
-                // Retrieve user from context
-                var user = HttpContext.User;
-                // Optionally retrieve user ID if needed
-                var userId = user.FindFirst("Id")?.Value;
-                var email = user.FindFirst("Email")?.Value;
-                var tags = new List<PagePost>();
+                //// Retrieve user from context
+                //var user = HttpContext.User;
+                //// Optionally retrieve user ID if needed
+                //var userId = user.FindFirst("Id")?.Value;
+                //var email = user.FindFirst("Email")?.Value;
+                var tags = new List<PagePostResponseDto>();
+
                 tags = await _ccdvService.GetAllPagePostsAsync();
                 return Ok(tags);
             }
@@ -1651,6 +1720,7 @@ namespace CCDbApi.Controller
         }
         // GET: api/PagePost/{id}
         [HttpGet("getPagePost/{id}")]
+        [AllowAnonymous]
         public async Task<ActionResult<PagePostResponseDto>> getPagePost(string id)
         {
             if (!ModelState.IsValid)
@@ -1664,10 +1734,10 @@ namespace CCDbApi.Controller
             try
             {
                 // Retrieve user from context
-                var user = HttpContext.User;
-                // Optionally retrieve user ID if needed
-                var userId = user.FindFirst("Id")?.Value;
-                var email = user.FindFirst("Email")?.Value;
+                //var user = HttpContext.User;
+                //// Optionally retrieve user ID if needed
+                //var userId = user.FindFirst("Id")?.Value;
+                //var email = user.FindFirst("Email")?.Value;
                 var tag = new PagePost();
                 tag = await _ccdvService.GetPagePostAsync(id);
                 if (tag == null)
@@ -1795,7 +1865,7 @@ namespace CCDbApi.Controller
                         return BadRequest("Failed to update PagePost data");
                     }
                 }
-                if (dto.CategoryIds.Any() || dto.TagsIds.Any())
+                if (tag.Type == "post" && (dto.CategoryIds.Any() || dto.TagsIds.Any()))
                 {
                     var data = await _ccdvService.AddTagAndCategoryMappingWithPagePostAsync(tag, dto.CategoryIds, dto.TagsIds);
                 }

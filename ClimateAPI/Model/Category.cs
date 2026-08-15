@@ -136,6 +136,7 @@ namespace CCDbApi.Model
         public CommentStatus Status { get; set; }
         public string Email { get; set; }
         public string Description { get; set; }
+        public string PostId { get; set; }
         public string UserId { get; set; }
     }
     public class Order : BaseEntity

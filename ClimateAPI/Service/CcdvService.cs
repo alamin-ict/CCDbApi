@@ -1,6 +1,7 @@
 ﻿using CCDbApi.Model;
 using CCDbApi.Repository;
 using CCDbApi.ViewModel;
+using System.Linq;
 
 namespace CCDbApi.Service
 {
@@ -41,8 +42,8 @@ namespace CCDbApi.Service
         Task<PagePost> UpdatePagePostAsync(PagePost pagePost);
         Task<PagePost> DeletePagePostAsync(PagePost pagePost);
         Task<PagePost> GetPagePostAsync(string id);
-        Task<List<PagePost>> GetAllPagePostsAsync();
-        Task<bool> AddTagAndCategoryMappingWithPagePostAsync(PagePost page, List<string>? catIds,
+        Task<List<PagePostResponseDto>> GetAllPagePostsAsync();
+        Task<bool> AddTagAndCategoryMappingWithPagePostAsync(PagePost post, List<string>? catIds,
             List<string>? TagIds);
         Task<List<CategoryDto>> GetAllCategoriesByPostIdAsync(string postId);
         Task<List<TagsDto>> GetAllTagsByPostIdAsync(string postId);
@@ -52,6 +53,8 @@ namespace CCDbApi.Service
         Task<Comment> DeleteCommentAsync(Comment pagePost);
         Task<Comment> GetCommentAsync(string id);
         Task<List<Comment>> GetAllCommentsAsync();
+        Task<List<Comment>> GetAllPublicCommentsAsync();
+        Task<List<Comment>> GetAllUserCommentsAsync(string userId);
 
     }
     public class CcdvService : ICcdvService
@@ -377,6 +380,27 @@ namespace CCDbApi.Service
 
             return data.ToList();
         }
+        public async Task<List<Comment>> GetAllPublicCommentsAsync()
+        {
+            var data = await _commentRepo.FindAsync(a=>a.Status==CommentStatus.Approved);
+            if (data == null)
+            {
+                return null;
+            }
+
+            return data.ToList();
+        }
+        public async Task<List<Comment>> GetAllUserCommentsAsync(string userId)
+        {
+            var data = await _commentRepo.FindAsync(a=>a.UserId==userId|| a.Status == CommentStatus.Approved);
+
+            if (data == null)
+            {
+                return null;
+            }
+
+            return data.ToList();
+        }
         // Page Post
 
         public async Task<Comment> AddCommentAsync(Comment pagePost)
@@ -426,16 +450,150 @@ namespace CCDbApi.Service
 
             return data.FirstOrDefault();
         }
-        public async Task<List<PagePost>> GetAllPagePostsAsync()
+        public async Task<List<PagePostResponseDto>> GetAllPagePostsAsync()
         {
             var data = await _pagePostRepo.GetAllAsync();
 
-            if (data == null)
+            if (data == null || !data.Any())
             {
-                return null;
+                return new List<PagePostResponseDto>();
             }
 
-            return data.ToList();
+            var posts = data.ToList();
+
+            // Only posts need category/tag mappings
+            var postItems = posts
+                .Where(x => x.Type != null &&
+                            x.Type.Equals("post", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            List<PostCategoryMapping> categoryMappings = new();
+            List<Category> categories = new();
+
+            List<PostTagsMapping> tagMappings = new();
+            List<Tags> tags = new();
+
+            if (postItems.Any())
+            {
+                var postIds = postItems
+                    .Select(x => x.Id.ToString())
+                    .ToList();
+
+                // Category mappings
+                var categoryMappingData = await _postMappingRepo
+                    .FindAsync(x => postIds.Contains(x.PostId));
+
+                categoryMappings = categoryMappingData?.ToList()
+                    ?? new List<PostCategoryMapping>();
+
+                var categoryIds = categoryMappings
+                    .Where(x => !string.IsNullOrEmpty(x.CategoryId))
+                    .Select(x => x.CategoryId)
+                    .Distinct()
+                    .ToList();
+
+                if (categoryIds.Any())
+                {
+                    var categoryData = await _categoryRepo
+                        .FindAsync(x => categoryIds.Contains(x.Id.ToString()));
+
+                    categories = categoryData?.ToList()
+                        ?? new List<Category>();
+                }
+
+                // Tag mappings
+                var tagMappingData = await _postTagsMappingRepo
+                    .FindAsync(x => postIds.Contains(x.PostId));
+
+                tagMappings = tagMappingData?.ToList()
+                    ?? new List<PostTagsMapping>();
+
+                var tagIds = tagMappings
+                    .Where(x => !string.IsNullOrEmpty(x.TagsId))
+                    .Select(x => x.TagsId)
+                    .Distinct()
+                    .ToList();
+
+                if (tagIds.Any())
+                {
+                    var tagData = await _tagsRepo
+                        .FindAsync(x => tagIds.Contains(x.Id.ToString()));
+
+                    tags = tagData?.ToList()
+                        ?? new List<Tags>();
+                }
+            }
+
+            // Map response
+            var result = posts.Select(post =>
+            {
+                var postId = post.Id.ToString();
+
+                List<CategoryDto> postCategories = new();
+                List<TagsDto> postTags = new();
+
+                // Only attach mappings for "post"
+                if (post.Type != null &&
+                    post.Type.Equals("post", StringComparison.OrdinalIgnoreCase))
+                {
+                    var categoryIdsForPost = categoryMappings
+                        .Where(x => x.PostId == postId)
+                        .Select(x => x.CategoryId)
+                        .ToHashSet();
+
+                    postCategories = categories
+                        .Where(x => categoryIdsForPost.Contains(x.Id.ToString()))
+                        .Select(x => new CategoryDto
+                        {
+                            Id = x.Id.ToString(),
+                            Name = x.Name,
+                            Slug = x.Slug,
+                            Description = x.Description,
+                            ParentId = x.ParentId?.ToString()
+                        })
+                        .ToList();
+
+                    var tagIdsForPost = tagMappings
+    .Where(x => x.PostId == postId)
+    .Select(x => x.TagsId)
+    .Where(x => !string.IsNullOrEmpty(x))
+    .ToHashSet();
+
+                    postTags = tags
+                        .Where(x => tagIdsForPost.Contains(x.Id.ToString()))
+                        .Select(x => new TagsDto
+                        {
+                            Id = x.Id.ToString(),
+                            Name = x.Name,
+                            Slug = x.Slug
+                        })
+                        .ToList();
+                }
+
+                return new PagePostResponseDto
+                {
+                    Id = postId,
+                    Author = post.Author,
+                    Categories = postCategories,
+                    CoverImage = post.CoverImage,
+                    Date = post.Date,
+                    Description = post.Description,
+                    FullContent = post.FullContent,
+                    Permalink = post.Permalink,
+                    Status = post.Status,
+                    Tags = postTags,
+                    Year = post.Year,
+                    Publisher = post.Publisher,
+                    Price = post.Price,
+                    PageSize = post.PageSize,
+                    IsSellInStore = post.IsSellInStore,
+                    DownloadUrl = post.DownloadUrl,
+                    Type = post.Type,
+                    Title = post.Title
+                };
+            }).ToList();
+
+            return result;
         }
 
         public async Task<List<PublicationCategoryMapping>> AddPublicationCategoryMappingAsync(List<PublicationCategoryMapping> publicationCategoryMapping)
@@ -477,14 +635,15 @@ namespace CCDbApi.Service
 
         }
 
-        public async Task<bool> AddTagAndCategoryMappingWithPagePostAsync(PagePost page, List<string>? catIds, List<string>? TagIds)
+        public async Task<bool> AddTagAndCategoryMappingWithPagePostAsync(PagePost post, List<string>? catIds, List<string>? TagIds)
         {
-            var cates = await _postMappingRepo.FindAsync(a => a.PostId == page.Id.ToString());
+            var postId = post.Id.ToString();
+            var cates = await _postMappingRepo.FindAsync(a => a.PostId == postId);
             if (cates != null)
             {
                 await _postMappingRepo.RemoveRangeAsync(cates);
             }
-            var tags = await _postTagsMappingRepo.FindAsync(a => a.PostId == page.Id.ToString());
+            var tags = await _postTagsMappingRepo.FindAsync(a => a.PostId == postId);
             if (tags != null)
             {
                 await _postTagsMappingRepo.RemoveRangeAsync(tags);
@@ -492,14 +651,14 @@ namespace CCDbApi.Service
             if (TagIds.Any())
             {
                 var tags1 = new List<PostTagsMapping>();
-                foreach (var catId in TagIds)
+                foreach (var tagId in TagIds)
                 {
                     tags1.Add(new PostTagsMapping()
                     {
-                        TagsId = catId.ToString(),
-                        CreatedBy = page.UserId,
+                        TagsId = tagId.ToString(),
+                        CreatedBy = post.UserId,
                         CreatedDate = DateTime.Now,
-                        PostId = catId.ToString(),
+                        PostId = postId,
                     });
                 }
                 await _postTagsMappingRepo.AddRangeAsync(tags1);
@@ -512,9 +671,9 @@ namespace CCDbApi.Service
                     categories.Add(new PostCategoryMapping()
                     {
                         CategoryId = catId.ToString(),
-                        CreatedBy = page.UserId,
+                        CreatedBy = post.UserId,
                         CreatedDate = DateTime.Now,
-                        PostId = catId.ToString(),
+                        PostId = postId,
                     });
                 }
                 await _postMappingRepo.AddRangeAsync(categories);
