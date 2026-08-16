@@ -288,7 +288,8 @@ namespace CCDbApi.Controller
                 Source = "https://portal.ccdbclimatecentre.com/",
                 Category = "CCDB_Climate",
                 IsActive = true,
-                IsDeleted = false
+                IsDeleted = false,
+                CreatedBy = "system-generated"
 
             };
             var subscribe = await _climateService.AddSubscribeAsync(subs);
@@ -299,7 +300,7 @@ namespace CCDbApi.Controller
             });
 
         }
-        [HttpPost("getAllSubscribe")]
+        [HttpGet("getAllSubscribe")]
         [AllowAnonymous]
         public async Task<IActionResult> GetAllSubscribes()
         {
@@ -315,7 +316,7 @@ namespace CCDbApi.Controller
             var subscribes = await _climateService.GetAllSubscribeAsync();
             return Ok(new
             {
-                message = "Login succesfull",
+                message = "Data is retrived succesfully",
                 Subscribe = subscribes
             });
 

@@ -43,6 +43,7 @@ namespace CCDbApi.Service
         Task<PagePost> DeletePagePostAsync(PagePost pagePost);
         Task<PagePost> GetPagePostAsync(string id);
         Task<List<PagePostResponseDto>> GetAllPagePostsAsync();
+        Task<List<PageResponseDto>> GetAllPageAsync();
         Task<bool> AddTagAndCategoryMappingWithPagePostAsync(PagePost post, List<string>? catIds,
             List<string>? TagIds);
         Task<List<CategoryDto>> GetAllCategoriesByPostIdAsync(string postId);
@@ -53,8 +54,8 @@ namespace CCDbApi.Service
         Task<Comment> DeleteCommentAsync(Comment pagePost);
         Task<Comment> GetCommentAsync(string id);
         Task<List<Comment>> GetAllCommentsAsync();
-        Task<List<Comment>> GetAllPublicCommentsAsync();
-        Task<List<Comment>> GetAllUserCommentsAsync(string userId);
+        Task<List<Comment>> GetAllPublicCommentsAsync(string postId);
+        Task<List<Comment>> GetAllUserCommentsAsync(string userId, string postId);
 
     }
     public class CcdvService : ICcdvService
@@ -380,9 +381,9 @@ namespace CCDbApi.Service
 
             return data.ToList();
         }
-        public async Task<List<Comment>> GetAllPublicCommentsAsync()
+        public async Task<List<Comment>> GetAllPublicCommentsAsync(string postId)
         {
-            var data = await _commentRepo.FindAsync(a=>a.Status==CommentStatus.Approved);
+            var data = await _commentRepo.FindAsync(a => a.Status == CommentStatus.Approved && a.PostId == postId);
             if (data == null)
             {
                 return null;
@@ -390,9 +391,9 @@ namespace CCDbApi.Service
 
             return data.ToList();
         }
-        public async Task<List<Comment>> GetAllUserCommentsAsync(string userId)
+        public async Task<List<Comment>> GetAllUserCommentsAsync(string userId, string postId)
         {
-            var data = await _commentRepo.FindAsync(a=>a.UserId==userId|| a.Status == CommentStatus.Approved);
+            var data = await _commentRepo.FindAsync(a => (a.UserId == userId || a.Status == CommentStatus.Approved) && a.PostId == postId);
 
             if (data == null)
             {
@@ -595,7 +596,43 @@ namespace CCDbApi.Service
 
             return result;
         }
+        public async Task<List<PageResponseDto>> GetAllPageAsync()
+        {
+            var data = await _pagePostRepo.FindAsync(a => a.Type == "page");
 
+            if (data == null || !data.Any())
+            {
+                return new List<PageResponseDto>();
+            }
+
+            var posts = data.ToList();
+
+
+            // Map response
+            var result = data.Select(post =>
+            {
+
+
+
+                return new PageResponseDto
+                {
+                    Id = post.Id.ToString(),
+                    Author = post.Author,
+
+                    CoverImage = post.CoverImage,
+                    Date = post.Date,
+                    Description = post.Description,
+                    FullContent = post.FullContent,
+                    Permalink = post.Permalink,
+                    Status = post.Status,
+
+                    Type = post.Type,
+                    Title = post.Title
+                };
+            }).ToList();
+
+            return result;
+        }
         public async Task<List<PublicationCategoryMapping>> AddPublicationCategoryMappingAsync(List<PublicationCategoryMapping> publicationCategoryMapping)
         {
             var publication = publicationCategoryMapping.FirstOrDefault();

@@ -1469,7 +1469,7 @@ namespace CCDbApi.Controller
         // GET: api/Comments
         [HttpGet("getAllPublicComments")]
         [AllowAnonymous]
-        public async Task<ActionResult<IEnumerable<Comment>>> getAllPublicComments()
+        public async Task<ActionResult<IEnumerable<Comment>>> getAllPublicComments(string postId)
         {
             if (!ModelState.IsValid)
             {
@@ -1484,7 +1484,7 @@ namespace CCDbApi.Controller
 
 
                 var tags = new List<Comment>();
-                tags = await _ccdvService.GetAllPublicCommentsAsync();
+                tags = await _ccdvService.GetAllPublicCommentsAsync(postId);
                 return Ok(tags);
             }
             catch (Exception ex)
@@ -1499,7 +1499,7 @@ namespace CCDbApi.Controller
         // GET: api/Comments
         [HttpGet("getAllUserComments")]
 
-        public async Task<ActionResult<IEnumerable<Comment>>> getAllUserComments()
+        public async Task<ActionResult<IEnumerable<Comment>>> getAllUserComments(string postId)
         {
             if (!ModelState.IsValid)
             {
@@ -1518,7 +1518,7 @@ namespace CCDbApi.Controller
                 var email = user.FindFirst("Email")?.Value;
 
                 var tags = new List<Comment>();
-                tags = await _ccdvService.GetAllUserCommentsAsync(userId);
+                tags = await _ccdvService.GetAllUserCommentsAsync(userId, postId);
                 return Ok(tags);
             }
             catch (Exception ex)
@@ -1922,6 +1922,95 @@ namespace CCDbApi.Controller
                 return StatusCode(StatusCodes.Status500InternalServerError, problem);
             }
         }
+
+
+        //comment
+        // GET: api/PagePosts
+        [HttpGet("getAllPages")]
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<PageResponseDto>>> getAllPages()
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new
+                {
+                    message = "Invalid PagePost data.",
+                    errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                });
+            }
+            try
+            {
+                //// Retrieve user from context
+                //var user = HttpContext.User;
+                //// Optionally retrieve user ID if needed
+                //var userId = user.FindFirst("Id")?.Value;
+                //var email = user.FindFirst("Email")?.Value;
+                var tags = new List<PageResponseDto>();
+
+                tags = await _ccdvService.GetAllPageAsync();
+                return Ok(tags);
+            }
+            catch (Exception ex)
+            {
+                // Log ex here
+                var problem = Problem(detail: "An unexpected error occurred.", title: "Server Error");
+                return StatusCode(StatusCodes.Status500InternalServerError, problem);
+            }
+
+        }
+        // GET: api/PagePost/{id}
+        [HttpGet("getPage/{id}")]
+        [AllowAnonymous]
+        public async Task<ActionResult<PageResponseDto>> getPage(string id)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new
+                {
+                    message = "Invalid PagePost data.",
+                    errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                });
+            }
+            try
+            {
+                // Retrieve user from context
+                //var user = HttpContext.User;
+                //// Optionally retrieve user ID if needed
+                //var userId = user.FindFirst("Id")?.Value;
+                //var email = user.FindFirst("Email")?.Value;
+                var tag = new PagePost();
+                tag = await _ccdvService.GetPagePostAsync(id);
+                if (tag == null)
+                {
+                    return Ok(tag);
+                }
+
+                var data = new PageResponseDto()
+                {
+                    Author = tag.Author,
+
+                    CoverImage = tag.CoverImage,
+                    Date = tag.Date,
+                    Description = tag.Description,
+                    FullContent = tag.FullContent,
+                    Id = tag.Id.ToString(),
+                    Permalink = tag.Permalink,
+                    Status = tag.Status,
+
+                    Type = tag.Type,
+                    Title = tag.Title,
+                };
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                // Log ex here
+                var problem = Problem(detail: "An unexpected error occurred.", title: "Server Error");
+                return StatusCode(StatusCodes.Status500InternalServerError, problem);
+            }
+        }
+
+
 
 
     }

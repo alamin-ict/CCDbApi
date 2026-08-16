@@ -1,6 +1,7 @@
 ﻿using CCDbApi.Model;
 using CCDbApi.Service;
 using CCDbApi.ViewModel;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
@@ -19,6 +20,7 @@ namespace CCDbApi.Controller
 
         // GET: api/General
         [HttpGet("getGeneralSetting")]
+ 
         public async Task<ActionResult<GeneralSettings>> getGeneral()
         {
             if (!ModelState.IsValid)
@@ -117,6 +119,7 @@ namespace CCDbApi.Controller
 
         // GET: api/Appearance
         [HttpGet("getAppearance")]
+ 
         public async Task<ActionResult<Appearance>> getAppearance()
         {
             if (!ModelState.IsValid)
@@ -215,6 +218,7 @@ namespace CCDbApi.Controller
 
         // GET: api/SocialContact
         [HttpGet("getSocialContact")]
+      
         public async Task<ActionResult<SocialContact>> getSocialContact()
         {
             if (!ModelState.IsValid)
@@ -320,6 +324,7 @@ namespace CCDbApi.Controller
 
         // GET: api/Sliders
         [HttpGet("getAllSliders")]
+        [AllowAnonymous]
         public async Task<ActionResult<Slider>> getAllSlider()
         {
             if (!ModelState.IsValid)
@@ -333,10 +338,10 @@ namespace CCDbApi.Controller
             try
             {
                 // Retrieve user from context
-                var user = HttpContext.User;
-                // Optionally retrieve user ID if needed
-                var userId = user.FindFirst("Id")?.Value;
-                var email = user.FindFirst("Email")?.Value;
+                //var user = HttpContext.User;
+                //// Optionally retrieve user ID if needed
+                //var userId = user.FindFirst("Id")?.Value;
+                //var email = user.FindFirst("Email")?.Value;
                 var Sliders = new List<Slider>();
                 Sliders = await _settingsService.GetAllSlidersAsync();
                 return Ok(Sliders);
@@ -351,6 +356,7 @@ namespace CCDbApi.Controller
 
         // GET: api/Slider
         [HttpGet("getSlider/{id}")]
+        [AllowAnonymous]
         public async Task<ActionResult<Slider>> getSlider(string id)
         {
             if (!ModelState.IsValid)
@@ -363,11 +369,11 @@ namespace CCDbApi.Controller
             }
             try
             {
-                // Retrieve user from context
-                var user = HttpContext.User;
-                // Optionally retrieve user ID if needed
-                var userId = user.FindFirst("Id")?.Value;
-                var email = user.FindFirst("Email")?.Value;
+                //// Retrieve user from context
+                //var user = HttpContext.User;
+                //// Optionally retrieve user ID if needed
+                //var userId = user.FindFirst("Id")?.Value;
+                //var email = user.FindFirst("Email")?.Value;
                 var Slider = new Slider();
                 Slider = await _settingsService.GetSliderAsync(id);
                 return Ok(Slider);

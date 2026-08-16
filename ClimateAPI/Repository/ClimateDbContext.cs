@@ -14,7 +14,7 @@ namespace IYogaBackendMicroservice.Repository
         public DbSet<TraineeInfo> TraineeInfos { get; set; }
 
         public DbSet<TrainingInfo> TrainingInfos { get; set; }
-        public DbSet<Subscribe> Subscribe { get; set; }
+        public DbSet<Subscribe> Subscribes { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<Role> Roles { get; set; }
         public DbSet<Category> Categories { get; set; }

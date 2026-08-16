@@ -123,6 +123,20 @@ namespace CCDbApi.ViewModel
         public List<string>? CategoryIds { get; set; }
         public List<string>? TagsIds { get; set; }
     }
+    public class CreatePageDto
+    {
+        public string? Id { get; set; }
+        public string Title { get; set; }
+        public string? Description { get; set; }
+        public string Permalink { get; set; }
+        public string FullContent { get; set; }
+        public Status Status { get; set; }
+        public string Author { get; set; }
+        public string? AuthorId { get; set; }
+        public string Type { get; set; }
+        public string CoverImage { get; set; }
+
+    }
 
 
     public class PagePostResponseDto
@@ -147,12 +161,26 @@ namespace CCDbApi.ViewModel
         public List<TagsDto>? Tags { get; set; }
     }
 
+    public class PageResponseDto
+    {
+        public string Id { get; set; }
+        public string Title { get; set; }
+        public string? Description { get; set; }
+        public string Permalink { get; set; }
+        public string FullContent { get; set; }
+        public string Type { get; set; }
+        public DateTime Date { get; set; }
+        public Status Status { get; set; }
+        public string Author { get; set; }
+        public string CoverImage { get; set; }
+
+    }
 
     // ================= General Settings DTOs =================
 
     public class CreateGeneralSettingsDto
     {
-       //public string? Id { get; set; }
+        //public string? Id { get; set; }
         public string SiteTitle { get; set; }
         public string SiteUrl { get; set; }
         public string Tagline { get; set; }
