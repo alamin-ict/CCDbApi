@@ -9,13 +9,13 @@ namespace CCDbApi.Service
         Task<GeneralSettings> AddGeneralSettingsAsync(GeneralSettings settings);
         Task<GeneralSettings> UpdateGeneralSettingsAsync(GeneralSettings settings);
         Task<GeneralSettings> DeleteGeneralSettingsAsync(GeneralSettings settings);
-        Task<GeneralSettings> GetGeneralSettingsAsync(string id);
+        Task<GeneralSettings> GetGeneralSettingsAsync();
         Task<List<GeneralSettings>> GetAllGeneralSettingsAsync();
         // Appearance
         Task<Appearance> AddAppearanceAsync(Appearance appearance);
         Task<Appearance> UpdateAppearanceAsync(Appearance appearance);
         Task<Appearance> DeleteAppearanceAsync(Appearance appearance);
-        Task<Appearance> GetAppearanceAsync(string id);
+        Task<Appearance> GetAppearanceAsync();
         Task<List<Appearance>> GetAllAppearancesAsync();
 
 
@@ -290,18 +290,18 @@ namespace CCDbApi.Service
 
 
         public async Task<Appearance> GetAppearanceAsync(
-            string id)
+            )
         {
-            var data = await _appearanceRepo.FindAsync(
-                x => x.UserId == id
-            );
+            var data = await _appearanceRepo.GetAllAsync();
 
             if (data == null)
             {
                 return null;
             }
 
-            return data.FirstOrDefault();
+            return data
+        .OrderByDescending(x => x.CreatedDate)
+        .FirstOrDefault();
         }
 
 
@@ -364,19 +364,18 @@ namespace CCDbApi.Service
 
 
 
-        public async Task<GeneralSettings> GetGeneralSettingsAsync(
-            string id)
+        public async Task<GeneralSettings> GetGeneralSettingsAsync()
         {
-            var data = await _generalSettingsRepo.FindAsync(
-                x => x.UserId== id
-            );
+            var data = await _generalSettingsRepo.GetAllAsync();
 
             if (data == null)
             {
                 return null;
             }
 
-            return data.FirstOrDefault();
+            return data
+         .OrderByDescending(x => x.CreatedDate)
+         .FirstOrDefault();
         }
 
 

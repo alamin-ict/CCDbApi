@@ -9,7 +9,8 @@ namespace CCDbApi.ViewModel
 
         public string? UserId { get; set; }
 
-        public string CustomerId { get; set; }
+        public string CustomerName { get; set; }
+        public string? Email { get; set; }
 
         public string? Title { get; set; } = string.Empty;
 

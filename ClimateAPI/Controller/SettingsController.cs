@@ -20,7 +20,7 @@ namespace CCDbApi.Controller
 
         // GET: api/General
         [HttpGet("getGeneralSetting")]
- 
+        [AllowAnonymous]
         public async Task<ActionResult<GeneralSettings>> getGeneral()
         {
             if (!ModelState.IsValid)
@@ -33,13 +33,13 @@ namespace CCDbApi.Controller
             }
             try
             {
-                // Retrieve user from context
-                var user = HttpContext.User;
-                // Optionally retrieve user ID if needed
-                var userId = user.FindFirst("Id")?.Value;
-                var email = user.FindFirst("Email")?.Value;
+                //// Retrieve user from context
+                //var user = HttpContext.User;
+                //// Optionally retrieve user ID if needed
+                //var userId = user.FindFirst("Id")?.Value;
+                //var email = user.FindFirst("Email")?.Value;
                 var tag = new GeneralSettings();
-                tag = await _settingsService.GetGeneralSettingsAsync(userId);
+                tag = await _settingsService.GetGeneralSettingsAsync();
                 return Ok(tag);
             }
             catch (Exception ex)
@@ -70,7 +70,7 @@ namespace CCDbApi.Controller
                 var userId = user.FindFirst("Id")?.Value;
                 var email = user.FindFirst("Email")?.Value;
                 var tag = new GeneralSettings();
-                tag = await _settingsService.GetGeneralSettingsAsync(userId);
+                tag = await _settingsService.GetGeneralSettingsAsync();
                 if (tag == null)
                 {
                     tag = new GeneralSettings()
@@ -119,7 +119,7 @@ namespace CCDbApi.Controller
 
         // GET: api/Appearance
         [HttpGet("getAppearance")]
- 
+        [AllowAnonymous]
         public async Task<ActionResult<Appearance>> getAppearance()
         {
             if (!ModelState.IsValid)
@@ -133,12 +133,12 @@ namespace CCDbApi.Controller
             try
             {
                 // Retrieve user from context
-                var user = HttpContext.User;
-                // Optionally retrieve user ID if needed
-                var userId = user.FindFirst("Id")?.Value;
-                var email = user.FindFirst("Email")?.Value;
+                //var user = HttpContext.User;
+                //// Optionally retrieve user ID if needed
+                //var userId = user.FindFirst("Id")?.Value;
+                //var email = user.FindFirst("Email")?.Value;
                 var tag = new Appearance();
-                tag = await _settingsService.GetAppearanceAsync(userId);
+                tag = await _settingsService.GetAppearanceAsync();
                 return Ok(tag);
             }
             catch (Exception ex)
@@ -169,7 +169,7 @@ namespace CCDbApi.Controller
                 var userId = user.FindFirst("Id")?.Value;
                 var email = user.FindFirst("Email")?.Value;
                 var tag = new Appearance();
-                tag = await _settingsService.GetAppearanceAsync(userId);
+                tag = await _settingsService.GetAppearanceAsync();
                 if (tag == null)
                 {
                     tag = new Appearance()

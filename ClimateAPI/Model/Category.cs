@@ -144,9 +144,8 @@ namespace CCDbApi.Model
         public string OrderNo { get; set; } = string.Empty;
 
         public string UserId { get; set; }
-
-        public string CustomerId { get; set; }
-
+        public string CustomerName { get; set; }
+        public string? Email { get; set; }
         public string? Title { get; set; } = string.Empty;
 
         public string? Description { get; set; } = string.Empty;

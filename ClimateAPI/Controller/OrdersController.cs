@@ -107,7 +107,8 @@ namespace CCDbApi.Controller
                     Id = order.Id.ToString(),
                     OrderNo = order.OrderNo,
                     UserId = order.UserId,
-                    CustomerId = order.CustomerId,
+                    CustomerName = order.CustomerName,
+                    Email=order.Email,
                     Title = order.Title,
                     Description = order.Description,
                     PropertyAddress = order.PropertyAddress,
@@ -124,7 +125,7 @@ namespace CCDbApi.Controller
                         Price = d.Price
                     }).ToList()
                 });
-              
+
             }
             catch (Exception ex)
             {
@@ -176,7 +177,8 @@ namespace CCDbApi.Controller
                     {
                         CreatedBy = userId,
                         CreatedDate = DateTime.Now,
-                        CustomerId = dto.CustomerId,
+                        CustomerName = dto.CustomerName,
+                        Email = dto.Email,
                         Description = dto.Description,
                         DueDate = dto.DueDate,
                         OrderDate = DateTime.Now,
@@ -203,7 +205,8 @@ namespace CCDbApi.Controller
                     {
                         return BadRequest("No such Order found with this id");
                     }
-                    order.CustomerId = dto.CustomerId;
+                    order.CustomerName = dto.CustomerName;
+                    order.Email = dto.Email;
                     order.Description = dto.Description;
                     order.DueDate = dto.DueDate;
                     order.OrderDate = DateTime.Now;
