@@ -156,21 +156,7 @@ namespace CCDbApi.Controller
                 var email = user.FindFirst("Email")?.Value;
                 var order = new Order();
                 var orderDetails = new List<OrderDetail>();
-                if (dto.OrderDetailDtos.Any())
-                {
-                    dto.OrderDetailDtos.ForEach(a =>
-                    orderDetails.Add(new OrderDetail()
-                    {
-                        OrderId = order.Id.ToString(),
-                        Price = a.Price,
-                        PublicationId = a.PublicationId,
-                        Quantity = a.Quantity,
-                        CreatedBy = order.CreatedBy,
-                        CreatedDate = order.CreatedDate,
-
-                    }));
-
-                }
+                
                 if (dto.Id == null)
                 {
                     order = new Order()
@@ -195,6 +181,21 @@ namespace CCDbApi.Controller
                     if (order == null)
                     {
                         return BadRequest("Failed to add Order data");
+                    }
+                    if (dto.OrderDetailDtos.Any())
+                    {
+                        dto.OrderDetailDtos.ForEach(a =>
+                        orderDetails.Add(new OrderDetail()
+                        {
+                            OrderId = order.Id.ToString(),
+                            Price = a.Price,
+                            PublicationId = a.PublicationId,
+                            Quantity = a.Quantity,
+                            CreatedBy = order.CreatedBy,
+                            CreatedDate = order.CreatedDate,
+
+                        }));
+
                     }
                     await _orderService.AddOrderDetailRangeAsync(orderDetails);
                 }
@@ -221,6 +222,21 @@ namespace CCDbApi.Controller
                     if (order == null)
                     {
                         return BadRequest("Failed to update Order data");
+                    }
+                    if (dto.OrderDetailDtos.Any())
+                    {
+                        dto.OrderDetailDtos.ForEach(a =>
+                        orderDetails.Add(new OrderDetail()
+                        {
+                            OrderId = order.Id.ToString(),
+                            Price = a.Price,
+                            PublicationId = a.PublicationId,
+                            Quantity = a.Quantity,
+                            CreatedBy = order.CreatedBy,
+                            CreatedDate = order.CreatedDate,
+
+                        }));
+
                     }
                     await _orderService.UpdateOrderDetailRangeAsync(orderDetails);
                 }

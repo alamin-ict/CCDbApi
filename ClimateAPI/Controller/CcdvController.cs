@@ -1198,6 +1198,7 @@ namespace CCDbApi.Controller
 
         // GET: api/Publications
         [HttpGet("getAllPublications")]
+        //[AllowAnonymous]
         public async Task<ActionResult<IEnumerable<Tags>>> getAllPublications()
         {
             if (!ModelState.IsValid)
@@ -1227,6 +1228,41 @@ namespace CCDbApi.Controller
             }
 
         }
+
+
+        // GET: api/Publications
+        [HttpGet("getAllUserPublications")]
+        public async Task<ActionResult<IEnumerable<Tags>>> getAllUserPublications()
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new
+                {
+                    message = "Invalid Publication data.",
+                    errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                });
+            }
+            try
+            {
+                // Retrieve user from context
+                var user = HttpContext.User;
+                // Optionally retrieve user ID if needed
+                var userId = user.FindFirst("Id")?.Value;
+                var email = user.FindFirst("Email")?.Value;
+                var tags = new List<PublicationResponseDto>();
+                tags = await _ccdvService.GetAllUserPublicationsAsync(userId);
+                return Ok(tags);
+            }
+            catch (Exception ex)
+            {
+                // Log ex here
+                var problem = Problem(detail: "An unexpected error occurred.", title: "Server Error");
+                return StatusCode(StatusCodes.Status500InternalServerError, problem);
+            }
+
+        }
+
+
         // GET: api/Publication/{id}
         [HttpGet("getPublication/{id}")]
         public async Task<ActionResult<PublicationResponseDto>> getPublication(string id)
